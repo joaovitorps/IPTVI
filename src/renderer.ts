@@ -26,11 +26,11 @@
  * ```
  */
 
-import "./index.css";
-
 console.log(
-  '👋 This message is being logged by "renderer.ts", included via Vite'
+  '👋 This message is being logged by "renderer.ts", included via Vite',
 );
 
 const version = document.getElementById("version");
 version.innerHTML = `Chrome version is ${versions.chrome()}`;
+
+import "./App";
