@@ -33,4 +33,4 @@ console.log(
 const version = document.getElementById("version");
 version.innerHTML = `Chrome version is ${versions.chrome()}`;
 
-import "./App";
+import "./main";
