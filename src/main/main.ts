@@ -1,4 +1,4 @@
-import { app, BrowserWindow } from "electron";
+import { app, BrowserWindow, session } from "electron";
 import path from "node:path";
 import started from "electron-squirrel-startup";
 
@@ -33,7 +33,21 @@ const createWindow = () => {
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
-app.on("ready", createWindow);
+app.on("ready", () => {
+  // Handler for CSP HTTP headers
+  session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
+    callback({
+      responseHeaders: {
+        ...details.responseHeaders,
+        "Content-Security-Policy": [
+          "default-src 'self'; script-src 'self'; style-src-elem 'self' https://fonts.googleapis.com 'unsafe-inline'; font-src https://fonts.gstatic.com",
+        ],
+      },
+    });
+  });
+
+  createWindow();
+});
 
 // Quit when all windows are closed, except on macOS. There, it's common
 // for applications and their menu bar to stay active until the user quits
