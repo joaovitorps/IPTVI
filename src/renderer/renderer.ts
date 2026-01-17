@@ -26,11 +26,4 @@
  * ```
  */
 
-console.log(
-  '👋 This message is being logged by "renderer.ts", included via Vite',
-);
-
-const version = document.getElementById("version");
-version.innerHTML = `Chrome version is ${versions.chrome()}`;
-
-import "./main";
+import "./main.tsx";
