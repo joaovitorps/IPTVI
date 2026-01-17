@@ -1,6 +1,12 @@
-import { app, BrowserWindow, session } from "electron";
-import path from "node:path";
+import { app, BrowserWindow, ipcMain, session } from "electron";
 import started from "electron-squirrel-startup";
+import path from "node:path";
+
+import { getSeriesCategories, getSeriesCategory } from "./playlistParser";
+
+import dotenv from "dotenv";
+
+dotenv.config();
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (started) {
@@ -10,8 +16,8 @@ if (started) {
 const createWindow = () => {
   // Create the browser window.
   const mainWindow = new BrowserWindow({
-    width: 800,
-    height: 600,
+    minWidth: 300,
+    minHeight: 600,
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
     },
@@ -22,7 +28,7 @@ const createWindow = () => {
     mainWindow.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL);
   } else {
     mainWindow.loadFile(
-      path.join(__dirname, `../renderer/${MAIN_WINDOW_VITE_NAME}/index.html`),
+      path.join(__dirname, `../renderer/${MAIN_WINDOW_VITE_NAME}/index.html`)
     );
   }
 
@@ -45,6 +51,11 @@ app.on("ready", () => {
       },
     });
   });
+
+  ipcMain.handle("get-series-categories", getSeriesCategories);
+  ipcMain.handle("get-series-category", (_event, categoryId: number) =>
+    getSeriesCategory(categoryId)
+  );
 
   createWindow();
 });
