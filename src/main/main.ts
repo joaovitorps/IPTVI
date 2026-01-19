@@ -2,7 +2,11 @@ import { app, BrowserWindow, ipcMain, session } from "electron";
 import started from "electron-squirrel-startup";
 import path from "node:path";
 
-import { getSeriesCategories, getSeriesCategory } from "./playlistParser";
+import {
+  getSerieInfo,
+  getSeriesCategories,
+  getSeriesCategory,
+} from "./playlistParser";
 
 import dotenv from "dotenv";
 
@@ -28,7 +32,7 @@ const createWindow = () => {
     mainWindow.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL);
   } else {
     mainWindow.loadFile(
-      path.join(__dirname, `../renderer/${MAIN_WINDOW_VITE_NAME}/index.html`)
+      path.join(__dirname, `../renderer/${MAIN_WINDOW_VITE_NAME}/index.html`),
     );
   }
 
@@ -54,7 +58,10 @@ app.on("ready", () => {
 
   ipcMain.handle("get-series-categories", getSeriesCategories);
   ipcMain.handle("get-series-category", (_event, categoryId: number) =>
-    getSeriesCategory(categoryId)
+    getSeriesCategory(categoryId),
+  );
+  ipcMain.handle("get-serie-info", (_event, serieId: number) =>
+    getSerieInfo(serieId),
   );
 
   createWindow();

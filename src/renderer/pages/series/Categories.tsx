@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 
-import SerieCategory from "../components/SerieCategory";
 import { Loader2 } from "lucide-react";
+import { SerieCategory } from "../../../types";
+import Button from "../../components/Button";
 
-const SeriesCategories = () => {
+const Categories = () => {
   const [seriesCategories, setSeriesCategories] = useState<SerieCategory[]>();
 
   useEffect(() => {
@@ -19,7 +20,12 @@ const SeriesCategories = () => {
       {seriesCategories ? (
         <div className="flex flex-col flex-wrap  gap-2 sm:flex-row">
           {seriesCategories.map((category) => (
-            <SerieCategory key={category.category_id} category={category} />
+            <Button
+              key={category.category_id}
+              path={`category/${category.category_id}/series`}
+            >
+              {category.category_name}
+            </Button>
           ))}
         </div>
       ) : (
@@ -29,4 +35,4 @@ const SeriesCategories = () => {
   );
 };
 
-export default SeriesCategories;
+export default Categories;

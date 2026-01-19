@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
-import { Link, useParams } from "react-router";
-import type { Serie } from "../types";
+import { useParams } from "react-router";
+import type { Serie } from "../../../types";
 import { Loader } from "lucide-react";
+import Button from "../../components/Button";
 
-const SeriesCategory = () => {
+const Series = () => {
   const [series, setSeries] = useState<Serie[]>();
 
   const { categoryId } = useParams();
@@ -18,9 +19,14 @@ const SeriesCategory = () => {
 
   return (
     <>
-      <Link to={"/"}>Back</Link> - SeriesCategory
       {series ? (
-        series.map((serie) => <div key={serie.series_id}>{serie.name}</div>)
+        series.map((serie) => (
+          <div key={serie.series_id}>
+            <Button path={`/serie/${serie.series_id}/info`}>
+              {serie.name}
+            </Button>
+          </div>
+        ))
       ) : (
         <Loader className="animate-spin" />
       )}
@@ -28,4 +34,4 @@ const SeriesCategory = () => {
   );
 };
 
-export default SeriesCategory;
+export default Series;
