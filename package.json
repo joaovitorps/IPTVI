@@ -45,7 +45,7 @@
     "postcss": "^8.5.6",
     "prettier": "3.8.1",
     "typescript": "5.9.3",
-    "vite": "^5.4.21",
+    "vite": "^7.3.1",
     "vitest": "^4.0.18"
   },
   "dependencies": {
@@ -54,7 +54,7 @@
     "dotenv": "^17.3.1",
     "electron-squirrel-startup": "^1.0.1",
     "electron-store": "^11.0.2",
-    "lucide-react": "^0.562.0",
+    "lucide-react": "^0.575.0",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
     "react-router": "^7.13.1",
