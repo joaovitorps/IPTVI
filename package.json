@@ -1,12 +1,15 @@
 {
-  "name": "IPTVI",
-  "productName": "IPTVI",
   "version": "1.0.0",
-  "description": "An interface that will receive an M3U8 file and read this",
   "main": ".vite/build/main.js",
+  "description": "An interface that will receive an M3U8 file and read this",
   "private": true,
+  "type": "module",
+  "config": {
+    "forge": "./forge.config.mts"
+  },
   "scripts": {
-    "start": "electron-forge start",
+    "dev": "electron-forge start",
+    "test": "vitest",
     "package": "electron-forge package",
     "make": "electron-forge make",
     "publish": "electron-forge publish",
@@ -31,24 +34,32 @@
     "@electron/fuses": "^1.8.0",
     "@tailwindcss/postcss": "^4.1.18",
     "@types/electron-squirrel-startup": "^1.0.2",
-    "@types/react": "^19.2.8",
+    "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@typescript-eslint/eslint-plugin": "^5.62.0",
     "@typescript-eslint/parser": "^5.62.0",
     "electron": "39.2.7",
     "eslint": "^8.57.1",
     "eslint-plugin-import": "^2.32.0",
+    "msw": "^2.12.10",
     "postcss": "^8.5.6",
-    "prettier": "3.8.0",
-    "typescript": "~4.5.4",
-    "vite": "^5.4.21"
+    "prettier": "3.8.1",
+    "typescript": "5.9.3",
+    "vite": "^5.4.21",
+    "vitest": "^4.0.18"
   },
   "dependencies": {
+    "axios": "^1.13.5",
+    "date-fns": "^4.1.0",
     "dotenv": "^17.2.3",
     "electron-squirrel-startup": "^1.0.1",
+    "electron-store": "^11.0.2",
     "lucide-react": "^0.562.0",
-    "react": "^19.2.3",
-    "react-dom": "^19.2.3",
-    "react-router": "^7.12.0"
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
+    "react-router": "^7.12.0",
+    "uuid": "^13.0.0",
+    "zod": "^4.3.6",
+    "zustand": "^5.0.11"
   }
 }
