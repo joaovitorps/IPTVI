@@ -16,6 +16,9 @@ export default defineConfig([
       reportUnusedDisableDirectives: "warn",
       reportUnusedInlineConfigs: "warn",
     },
+    rules: {
+      "@typescript-eslint/array-type": "error",
+    },
   },
   js.configs.recommended,
   tseslint.configs.recommended,
