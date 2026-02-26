@@ -7,6 +7,7 @@
   "scripts": {
     "dev": "electron-forge start",
     "test": "vitest",
+    "coverage": "vitest run --coverage",
     "package": "electron-forge package",
     "make": "electron-forge make",
     "publish": "electron-forge publish",
@@ -35,8 +36,7 @@
     "@types/electron-squirrel-startup": "^1.0.2",
     "@types/node": "^25.3.0",
     "@types/react": "^19.2.14",
-    "@types/react-dom": "^19.2.3",
-    "@typescript-eslint/parser": "^8.56.1",
+    "@vitest/coverage-v8": "^4.0.18",
     "electron": "40.6.1",
     "eslint": "^9.39.3",
     "eslint-plugin-import": "^2.32.0",

@@ -4,27 +4,19 @@
   "files": [],
   "references": [
     { "path": "./tsconfig.main.json" },
-    { "path": "./tsconfig.renderer.json" }
+    { "path": "./tsconfig.renderer.json" },
+    { "path": "./tsconfig.tests.json" }
   ],
 
   "compilerOptions": {
     "target": "ESNext",
-    "allowJs": true,
     "noImplicitAny": true,
     "sourceMap": true,
     "outDir": "dist",
-    "resolveJsonModule": true,
-    "lib": ["ESNext"],
     "module": "ESNext",
-
     "strict": true,
-    "esModuleInterop": true,
     "skipLibCheck": true,
-    "moduleResolution": "Bundler",
-
-    // "rewriteRelativeImportExtensions": true,
-    // "erasableSyntaxOnly": true,
-    // "verbatimModuleSyntax": true,
+    "moduleResolution": "bundler",
 
     "baseUrl": "./",
     "paths": {

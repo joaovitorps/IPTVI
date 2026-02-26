@@ -1,11 +1,11 @@
-import { resolve } from "node:path";
-
-import { defineConfig } from "vite";
+import { defineConfig } from "vitest/config";
 
 import { aliasSharedConfig } from "./vite.shared";
 
 export default defineConfig({
-  root: resolve(__dirname, "src/renderer"),
+  test: {
+    globals: true,
+  },
   resolve: {
     alias: aliasSharedConfig,
   },

@@ -1,15 +1,17 @@
 import { defineConfig } from "vite";
+
 import { resolve } from "node:path";
 
-import { sharedConfig } from "./vite.config";
+import { aliasSharedConfig } from "./vite.shared";
 
-// https://vitejs.dev/config
-// Output ESM so main.js is valid with package.json "type": "module"
 export default defineConfig({
-  resolve: sharedConfig,
+  resolve: {
+    alias: aliasSharedConfig,
+  },
   build: {
     lib: {
       entry: resolve(__dirname, "src/main/main.ts"),
+      // Output ESM so main.js is valid with package.json "type": "module"
       fileName: () => "main.js",
       formats: ["es"],
     },

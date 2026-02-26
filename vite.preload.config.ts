@@ -1,8 +1,9 @@
 import { defineConfig } from "vite";
 
-import { sharedConfig } from "./vite.config";
+import { aliasSharedConfig } from "./vite.shared";
 
-// https://vitejs.dev/config
 export default defineConfig({
-  resolve: sharedConfig,
+  resolve: {
+    alias: aliasSharedConfig,
+  },
 });
