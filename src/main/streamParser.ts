@@ -3,9 +3,10 @@ import { URL } from "node:url";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
+import { Readable } from "node:stream";
+import { type ReadableStream } from "node:stream/web";
 
 import { Credentials } from "@/shared/types";
-import { Readable } from "node:stream";
 
 const getParamFromUrlRequest = (
   param: string,
@@ -13,7 +14,7 @@ const getParamFromUrlRequest = (
 ) => {
   const url = new URL(request.url as string, `http://${request.headers.host}`);
 
-  return { [param]: url.searchParams.get("streamId") };
+  return url.searchParams.get(param);
 };
 
 const responseJson = (
@@ -29,13 +30,14 @@ const responseJson = (
   return;
 };
 
-const buildUrl = (credentials: Credentials, streamId: string) => {
+const buildUrl = (credentials: Credentials, streamId: number) => {
   const { server, username, password } = credentials;
 
   return `http://${server}/series/${username}/${password}/${streamId}.mkv`;
 };
 
-const getTempPath = (streamId: string) => {
+const getTempPath = (streamId: number | undefined) => {
+  if (!streamId) return "";
   return path.join(os.tmpdir(), `stream_${streamId}.mkv`);
 };
 
@@ -67,6 +69,7 @@ const fetchStream = async (
 };
 
 const map = new Map();
+const mapStreamId = new Map<"streamId", number>();
 
 const handleRequest = async (
   request: http.IncomingMessage,
@@ -74,9 +77,13 @@ const handleRequest = async (
   playlistCredential: Credentials,
 ) => {
   try {
-    const { streamId } = getParamFromUrlRequest("streamId", request);
+    const streamId = Number(getParamFromUrlRequest("streamId", request));
 
-    map.set("streamId", streamId);
+    console.log("Stream ID:", streamId);
+
+    if (!mapStreamId.has("streamId")) {
+      mapStreamId.set("streamId", streamId);
+    }
 
     if (!streamId) {
       return responseJson(response, 400, { error: "Stream ID is required" });
@@ -147,15 +154,21 @@ const handleRequest = async (
       Range: range,
     });
 
-    response.writeHead(206, {
-      "content-type": responseStream.headers.get("content-type"),
-      "content-length": responseStream.headers.get("content-length"),
-      connection: responseStream.headers.get("connection"),
-      "accept-ranges": responseStream.headers.get("accept-ranges"),
-      "content-range": responseStream.headers.get("content-range"),
-    });
+    const headers: Record<string, string> = {};
+    const ct = responseStream.headers.get("content-type");
+    if (ct) headers["content-type"] = ct;
+    const cl = responseStream.headers.get("content-length");
+    if (cl) headers["content-length"] = cl;
+    const conn = responseStream.headers.get("connection");
+    if (conn) headers["connection"] = conn;
+    const ar = responseStream.headers.get("accept-ranges");
+    if (ar) headers["accept-ranges"] = ar;
+    const cr = responseStream.headers.get("content-range");
+    if (cr) headers["content-range"] = cr;
 
-    Readable.fromWeb(responseStream.body).pipe(response);
+    response.writeHead(206, headers);
+
+    Readable.fromWeb(responseStream.body! as ReadableStream).pipe(response);
   } catch (error) {
     console.error("error", error);
     response.writeHead(500);
@@ -166,12 +179,16 @@ const handleRequest = async (
 
 process.on("exit", () => {
   console.log("Process exited");
-  if (map.has("streamId")) {
-    if (fs.existsSync(getTempPath(map.get("streamId")))) {
-      fs.unlinkSync(getTempPath(map.get("streamId")));
-    }
-    map.delete("streamId");
+  if (!mapStreamId.has("streamId")) return;
+
+  const streamId = mapStreamId.get("streamId");
+  const tempPath = getTempPath(streamId);
+
+  if (tempPath && fs.existsSync(tempPath)) {
+    fs.existsSync(tempPath);
   }
+
+  mapStreamId.delete("streamId");
 });
 
 process.on("SIGINT", () => {
