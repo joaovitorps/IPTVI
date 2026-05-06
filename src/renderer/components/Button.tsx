@@ -1,13 +1,13 @@
-import { Link } from "react-router";
 import React from "react";
+import { Link } from "react-router";
 
-const Button = ({
+export const Button = ({
   children,
-  path = null,
+  path,
   ...props
 }: {
   children: React.ReactNode;
-  path: string | null;
+  path: string;
 }) => {
   return (
     <Link
@@ -19,5 +19,3 @@ const Button = ({
     </Link>
   );
 };
-
-export default Button;

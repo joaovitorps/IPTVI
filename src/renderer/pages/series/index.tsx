@@ -1,7 +1,7 @@
 import { ArrowLeft, HomeIcon } from "lucide-react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router";
 
-const Index = () => {
+export const Index = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -11,6 +11,7 @@ const Index = () => {
     <>
       {pathnames.length > 0 && (
         <div className="flex">
+          {/* eslint-disable-next-line @typescript-eslint/no-misused-promises */}
           <button className="cursor-pointer" onClick={() => navigate(-1)}>
             <ArrowLeft />
           </button>
@@ -23,5 +24,3 @@ const Index = () => {
     </>
   );
 };
-
-export default Index;

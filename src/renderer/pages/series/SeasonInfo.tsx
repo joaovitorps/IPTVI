@@ -1,11 +1,11 @@
+import { Season } from "@/shared/schemas";
 import { useOutletContext } from "react-router";
-import { Season } from "../../../types";
 
-const SeasonInfo = () => {
-  const [seasons, setSeasonNumber]: [
-    Season[],
-    React.Dispatch<React.SetStateAction<number>>,
-  ] = useOutletContext();
+export const SeasonInfo = () => {
+  const [seasons, setSeasonNumber] =
+    useOutletContext<
+      [Season[], React.Dispatch<React.SetStateAction<number>>]
+    >();
 
   return (
     <div>
@@ -23,5 +23,3 @@ const SeasonInfo = () => {
     </div>
   );
 };
-
-export default SeasonInfo;
