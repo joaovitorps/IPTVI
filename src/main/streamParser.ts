@@ -1,12 +1,11 @@
-import http from "node:http";
-import { URL } from "node:url";
+import { Credentials } from "@/shared/types";
 import * as fs from "node:fs";
+import http from "node:http";
 import * as os from "node:os";
 import * as path from "node:path";
 import { Readable } from "node:stream";
 import { type ReadableStream } from "node:stream/web";
-
-import { Credentials } from "@/shared/types";
+import { URL } from "node:url";
 
 const getParamFromUrlRequest = (
   param: string,
@@ -46,6 +45,11 @@ const fetchStream = async (
   headers: Record<string, string>,
   attempts = 3,
 ) => {
+  console.log("url", streamUrl);
+  headers = {
+    Accept: "*/*",
+    ...headers,
+  };
   console.log("headers PARAM", headers);
   const responseStream = await fetch(streamUrl, {
     headers,
@@ -79,8 +83,6 @@ const handleRequest = async (
   try {
     const streamId = Number(getParamFromUrlRequest("streamId", request));
 
-    console.log("Stream ID:", streamId);
-
     if (!mapStreamId.has("streamId")) {
       mapStreamId.set("streamId", streamId);
     }
@@ -89,91 +91,125 @@ const handleRequest = async (
       return responseJson(response, 400, { error: "Stream ID is required" });
     }
 
-    const requestRange: string | undefined = request.headers.range;
-
-    if (!requestRange) {
-      return responseJson(response, 400, {
-        error: "The 'Range' header is required",
-      });
+    // Forward headers from client, but override/add essential ones
+    const clientHeaders: Record<string, string> = {};
+    for (const [key, value] of Object.entries(request.headers)) {
+      if (value && typeof value === "string") {
+        clientHeaders[key] = value;
+      } else if (Array.isArray(value) && value.length > 0) {
+        clientHeaders[key] = value[0];
+      }
     }
+    delete clientHeaders.host;
+    delete clientHeaders.connection;
+
+    const requestRange = request.headers.range || "bytes=0-";
+    console.log("Client Request Range:", requestRange);
 
     const tempPath = getTempPath(streamId);
 
     if (fs.existsSync(tempPath)) {
       const fileStats = fs.statSync(tempPath);
-      const fileSize = map.has("fileSize")
-        ? Number(map.get("fileSize"))
+      const fileSize = map.has(`content-length-${streamId}`)
+        ? (map.get(`content-length-${streamId}`) as number)
         : fileStats.size;
 
       const arrayRange = requestRange.replace("bytes=", "").split("-");
       const start = Number(arrayRange[0]);
       const end = arrayRange[1] ? Number(arrayRange[1]) : fileSize - 1;
 
-      const chunk = 10 ** 6;
+      const chunk = 1024 * 1024; // 1MB chunk for local files
       const finalEnd = Math.min(end, start + chunk);
       const contentLength = finalEnd - start + 1;
 
-      const range = `bytes ${start}-${finalEnd}/${fileSize}`;
-      console.log(`Serving range: ${range}`);
+      const rangeHeader = `bytes ${start}-${finalEnd}/${fileSize}`;
 
       response.writeHead(206, {
-        "content-range": range,
+        "content-range": rangeHeader,
         "content-length": contentLength,
         "content-type": "video/x-matroska",
-        "accept-ranges": `0-${fileSize}`,
+        "accept-ranges": "bytes",
+        "Access-Control-Allow-Origin": "*",
       });
 
-      const videoStreamReadable = fs.createReadStream(tempPath);
+      const videoStreamReadable = fs.createReadStream(tempPath, {
+        start,
+        end: finalEnd,
+      });
       videoStreamReadable.pipe(response);
+      return;
     }
 
     const streamUrl = buildUrl(playlistCredential, streamId);
 
+    // Get content length if not cached
+    let totalLength = map.get(`content-length-${streamId}`) as
+      | number
+      | undefined;
+    if (totalLength === undefined) {
+      console.log("Fetching content length for", streamUrl);
+      const headRes = await fetchStream(streamUrl, {
+        // ...clientHeaders,
+        Range: "bytes=0-0",
+      });
+
+      const contentRange = headRes.headers.get("content-range");
+      if (contentRange) {
+        totalLength = Number(contentRange.split("/")[1]);
+      } else {
+        totalLength = Number(headRes.headers.get("content-length"));
+      }
+
+      if (totalLength) {
+        map.set(`content-length-${streamId}`, totalLength);
+      }
+    }
+
     const arrayRange = requestRange.replace("bytes=", "").split("-");
-
-    const contentLength = map.has(`content-length-${streamId}`)
-      ? Number(map.get(`content-length-${streamId}`))
-      : await fetchStream(streamUrl, {
-          Range: `bytes=0-0`,
-        }).then((res) => {
-          const data = Number(res.headers.get("accept-ranges")?.split("-")[1]);
-          console.log("set content length on map", data);
-          map.set(`content-length-${streamId}`, data);
-          return data;
-        });
-
     const start = Number(arrayRange[0]);
-    const end = arrayRange[1] ? Number(arrayRange[1]) : contentLength - 1;
+    const end = arrayRange[1] ? Number(arrayRange[1]) : (totalLength || 1) - 1;
 
-    const chunk = 15 ** 6;
-    const finalEnd = Math.min(end, start + chunk);
+    // Use a larger chunk for remote streams to reduce overhead, but not too large
+    const chunk = 5 * 1024 * 1024; // 5MB
+    const finalEnd = totalLength ? Math.min(end, start + chunk) : end;
 
     const range = `bytes=${start}-${finalEnd}`;
+    console.log("Fetching remote range:", range);
 
     const responseStream = await fetchStream(streamUrl, {
+      // ...clientHeaders,
       Range: range,
     });
 
-    const headers: Record<string, string> = {};
+    const headers: Record<string, string> = {
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "GET, OPTIONS",
+      "Access-Control-Allow-Headers": "*",
+      "accept-ranges": "bytes",
+    };
+
     const ct = responseStream.headers.get("content-type");
     if (ct) headers["content-type"] = ct;
+
     const cl = responseStream.headers.get("content-length");
     if (cl) headers["content-length"] = cl;
-    const conn = responseStream.headers.get("connection");
-    if (conn) headers["connection"] = conn;
-    const ar = responseStream.headers.get("accept-ranges");
-    if (ar) headers["accept-ranges"] = ar;
+
     const cr = responseStream.headers.get("content-range");
     if (cr) headers["content-range"] = cr;
 
-    response.writeHead(206, headers);
+    response.writeHead(responseStream.status, headers);
 
-    Readable.fromWeb(responseStream.body! as ReadableStream).pipe(response);
+    if (responseStream.body) {
+      Readable.fromWeb(responseStream.body as ReadableStream).pipe(response);
+    } else {
+      response.end();
+    }
   } catch (error) {
-    console.error("error", error);
-    response.writeHead(500);
-    response.end();
-    process.exit(1);
+    console.error("Proxy Request Error:", error);
+    if (!response.writableEnded) {
+      response.writeHead(500);
+      response.end();
+    }
   }
 };
 
@@ -209,6 +245,17 @@ process.on("message", (playlistCredential: Credentials) => {
   }
 
   const server = http.createServer((request, response) => {
+    if (request.method === "OPTIONS") {
+      response.writeHead(204, {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "GET, OPTIONS",
+        "Access-Control-Allow-Headers": "*",
+        "Access-Control-Max-Age": "86400",
+      });
+      response.end();
+      return;
+    }
+
     handleRequest(request, response, playlistCredential).catch((err) => {
       console.error(err);
       if (!response.writableEnded) {
