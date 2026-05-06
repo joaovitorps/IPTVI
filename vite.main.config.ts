@@ -1,6 +1,5 @@
-import { defineConfig } from "vite";
-
 import { resolve } from "node:path";
+import { defineConfig } from "vite";
 
 import { aliasSharedConfig } from "./vite.shared";
 
@@ -10,10 +9,17 @@ export default defineConfig({
   },
   build: {
     lib: {
-      entry: resolve(__dirname, "src/main/main.ts"),
+      entry: {
+        main: resolve(__dirname, "src/main/main.ts"),
+        streamParser: resolve(__dirname, "src/main/streamParser.ts"),
+      },
       // Output ESM so main.js is valid with package.json "type": "module"
-      fileName: () => "main.js",
+      fileName: (_format, entryName) => `${entryName}.js`,
       formats: ["es"],
+    },
+    rollupOptions: {
+      // Ensure external dependencies aren't bundled into the JS
+      external: ["electron", "node:child_process", "electron-store"],
     },
   },
 });

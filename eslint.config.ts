@@ -1,16 +1,26 @@
+import * as js from "@eslint/js";
+import vitest from "@vitest/eslint-plugin";
+import * as pluginReact from "eslint-plugin-react";
 import { defineConfig, globalIgnores } from "eslint/config";
-import js from "@eslint/js";
 import tseslint from "typescript-eslint";
-import pluginReact from "eslint-plugin-react";
 
 export default defineConfig([
-  globalIgnores([".vite"]),
+  globalIgnores([
+    "**/.vite/",
+    "**/docs/*",
+    "postcss.config.mjs",
+    "**/*.js",
+    "src/@types/*.d.ts",
+  ]),
   {
     basePath: "./",
     files: ["**/*.{js,mjs,cjs,ts,mts,cts,jsx,tsx}"],
     languageOptions: {
       ecmaVersion: "latest",
       sourceType: "module",
+      globals: {
+        ...vitest.environments.env.globals,
+      },
     },
     linterOptions: {
       reportUnusedDisableDirectives: "warn",
@@ -21,7 +31,22 @@ export default defineConfig([
     },
   },
   js.configs.recommended,
-  tseslint.configs.recommended,
+  tseslint.configs.eslintRecommended,
+  tseslint.configs.recommendedTypeChecked,
+  {
+    languageOptions: {
+      parserOptions: {
+        projectService: true,
+      },
+    },
+  },
   pluginReact.configs.flat.recommended,
   pluginReact.configs.flat["jsx-runtime"],
+  {
+    settings: {
+      react: {
+        version: "detect",
+      },
+    },
+  },
 ]);

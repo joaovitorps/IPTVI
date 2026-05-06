@@ -1,10 +1,9 @@
-import path from "node:path";
-
+import { resolve } from "node:path";
 import { AliasOptions } from "vite";
 
 export const aliasSharedConfig: AliasOptions = {
-  "@": path.resolve(__dirname, "src"),
-  "@main": path.resolve(__dirname, "src/main"),
-  "@preload": path.resolve(__dirname, "src/preload"),
-  "@renderer": path.resolve(__dirname, "src/renderer"),
+  "@": resolve(__dirname, "src"),
+  "@main": resolve(__dirname, "src/main"),
+  "@preload": resolve(__dirname, "src/preload"),
+  "@renderer": resolve(__dirname, "src/renderer"),
 };
