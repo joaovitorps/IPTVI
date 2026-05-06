@@ -1,29 +1,17 @@
 {
-  "$schema": "https://www.schemastore.org/tsconfig",
-  "_version": "24.0.0",
-  "files": [],
-  "references": [
-    { "path": "./tsconfig.main.json" },
-    { "path": "./tsconfig.renderer.json" },
-    { "path": "./tsconfig.tests.json" }
+  "files": [
+    "eslint.config.ts",
+    "forge.config.ts",
+    "vite.main.config.ts",
+    "vite.preload.config.ts",
+    "vite.renderer.config.ts",
+    "vite.shared.ts",
+    "vitest.config.ts"
   ],
-
-  "compilerOptions": {
-    "target": "ESNext",
-    "noImplicitAny": true,
-    "sourceMap": true,
-    "outDir": "dist",
-    "module": "ESNext",
-    "strict": true,
-    "skipLibCheck": true,
-    "moduleResolution": "bundler",
-
-    "baseUrl": "./",
-    "paths": {
-      "@/*": ["./src/*"],
-      "@main/*": ["./src/main/*"],
-      "@preload/*": ["./src/preload/*"],
-      "@renderer/*": ["./src/renderer/*"]
-    }
-  }
+  "references": [
+    { "path": "./src/main" },
+    { "path": "./src/preload" },
+    { "path": "./src/renderer" },
+    { "path": "./tests" }
+  ]
 }
