@@ -1,16 +1,20 @@
-import { app, BrowserWindow, ipcMain, session } from "electron";
+import { APICategoryRepository } from "@/core/domain/repositories/api/api-category-repository";
+import { StorePlaylistRepository } from "@/core/domain/repositories/store/store-playlist-repository";
+import { FetchCategory } from "@/core/domain/use-cases/category/fetch-category";
+import { GetActivePlaylist } from "@/core/domain/use-cases/playlist/get-active-playlist";
+import { Credentials } from "@/shared/types";
+import { BrowserWindow, app, ipcMain } from "electron";
 import started from "electron-squirrel-startup";
-import path from "node:path";
+import { fork } from "node:child_process";
+import fs from "node:fs";
+import path, { dirname } from "node:path";
+import { fileURLToPath } from "node:url";
 
-import {
-  getSerieInfo,
-  getSeriesCategories,
-  getSeriesCategory,
-} from "./playlistParser";
+import { StoreSchema, store } from "../shared/store";
+import { getSerieInfo, getSeriesCategory } from "./api/requests";
+import { validateCredentials } from "./handler/authHandler";
 
-import dotenv from "dotenv";
-
-dotenv.config();
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (started) {
@@ -29,9 +33,9 @@ const createWindow = () => {
 
   // and load the index.html of the app.
   if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
-    mainWindow.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL);
+    void mainWindow.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL);
   } else {
-    mainWindow.loadFile(
+    void mainWindow.loadFile(
       path.join(__dirname, `../renderer/${MAIN_WINDOW_VITE_NAME}/index.html`),
     );
   }
@@ -45,24 +49,83 @@ const createWindow = () => {
 // Some APIs can only be used after this event occurs.
 app.on("ready", () => {
   // Handler for CSP HTTP headers
-  session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
-    callback({
-      responseHeaders: {
-        ...details.responseHeaders,
-        "Content-Security-Policy": [
-          "default-src 'self'; script-src 'self'; style-src-elem 'self' https://fonts.googleapis.com 'unsafe-inline'; font-src https://fonts.gstatic.com",
-        ],
-      },
-    });
+  // session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
+  //   callback({
+  //     responseHeaders: {
+  //       ...details.responseHeaders,
+  //       "Content-Security-Policy": [
+  //         "default-src 'self'; script-src 'self'; style-src-elem 'self' https://fonts.googleapis.com 'unsafe-inline'; font-src https://fonts.gstatic.com",
+  //       ],
+  //     },
+  //   });
+  // });
+
+  const getActivePlaylist = new GetActivePlaylist(
+    new StorePlaylistRepository(),
+  );
+
+  const currentPlaylist = getActivePlaylist.execute();
+
+  if (!currentPlaylist) throw new Error("No active playlist");
+
+  const { server, username, password } = currentPlaylist.credentials;
+
+  ipcMain.handle("get-series-categories", async () => {
+    const fetchCategory = new FetchCategory(
+      new APICategoryRepository(server, username, password),
+    );
+
+    const { categories } = await fetchCategory.execute();
+
+    return categories;
   });
 
-  ipcMain.handle("get-series-categories", getSeriesCategories);
   ipcMain.handle("get-series-category", (_event, categoryId: number) =>
     getSeriesCategory(categoryId),
   );
+
   ipcMain.handle("get-serie-info", (_event, serieId: number) =>
     getSerieInfo(serieId),
   );
+
+  ipcMain.handle("auth:validate", (_event, credentials: Credentials) => {
+    return validateCredentials(credentials);
+  });
+
+  ipcMain.on("electron-store:get", (event, key: keyof StoreSchema) => {
+    event.returnValue = store.get(key);
+  });
+
+  ipcMain.on("electron-store:set", (event, key: string, value: string) => {
+    event.returnValue = store.set(key, value);
+  });
+
+  ipcMain.on("electron-store:get-playlists", (event) => {
+    event.returnValue = store.get("playlists");
+  });
+
+  ipcMain.on("electron-store:append", (_event, key, value) => {
+    store.appendToArray(key, value);
+  });
+
+  ipcMain.on("electron-store:clear", () => store.clear());
+
+  const child = fork(path.join(__dirname, "streamParser.js"));
+
+  child.on("message", (message) => {
+    console.log(message, "from child");
+  });
+
+  child.on("exit", (code) => {
+    console.log("child exited with code", code);
+  });
+
+  fs.watch("./", (eventType, filename) => {
+    console.log(`Event Name: ${eventType}`);
+    console.log(`File Triggered: ${filename}`);
+  });
+
+  child.send(currentPlaylist.credentials);
 
   createWindow();
 });
