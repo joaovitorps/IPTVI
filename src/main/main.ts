@@ -1,18 +1,19 @@
-import { APICategoryRepository } from "@/core/domain/repositories/api/api-category-repository";
+import { Credentials } from "@/core/domain/entities/object-values/credentials";
 import { StorePlaylistRepository } from "@/core/domain/repositories/store/store-playlist-repository";
-import { FetchCategoryUseCase } from "@/core/domain/use-cases/category/fetch-category";
-import { CreatePlaylistUseCase } from "@/core/domain/use-cases/playlist/create-playlist";
-import { GetActivePlaylistUseCase } from "@/core/domain/use-cases/playlist/get-active-playlist";
-import { CreatePlaylist, Credentials } from "@/shared/types";
+import { DeletePlaylistUseCase } from "@/core/domain/use-cases/playlist/delete-playlist";
+import { CreatePlaylist, UpdatePlaylist } from "@/shared/types";
 import { BrowserWindow, app, ipcMain } from "electron";
 import started from "electron-squirrel-startup";
-import { fork } from "node:child_process";
-import fs from "node:fs";
 import path, { dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { getSerieInfo, getSeriesCategory } from "./api/requests";
-import { validateCredentials } from "./handler/authHandler";
+import { createPlaylist } from "./handlers/create-playlist";
+import { fetchCategories } from "./handlers/fetch-categories";
+import { fetchPlaylists } from "./handlers/fetch-playlists";
+import { fetchSerieInfo } from "./handlers/fetch-serie-info";
+import { fetchSeries } from "./handlers/fetch-series";
+import { updatePlaylist } from "./handlers/update-playlist";
+import { validateCredentials } from "./handlers/validate-credentials";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -47,7 +48,7 @@ const createWindow = () => {
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
-app.on("ready", async () => {
+app.on("ready", () => {
   // Handler for CSP HTTP headers
   // session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
   //   callback({
@@ -60,67 +61,42 @@ app.on("ready", async () => {
   //   });
   // });
 
-  ipcMain.handle("get-series-categories", async () => {
-    const getActivePlaylist = new GetActivePlaylistUseCase(
-      new StorePlaylistRepository(),
-    );
-
-    const { playlist: currentPlaylist } = await getActivePlaylist.execute({});
-
-    if (!currentPlaylist) throw new Error("No active playlist");
-
-    const { server, username, password } = currentPlaylist.credentials;
-
-    const fetchCategory = new FetchCategoryUseCase(
-      new APICategoryRepository(server, username, password),
-    );
-
-    const { categories } = await fetchCategory.execute({});
-
-    return categories;
-  });
-
-  ipcMain.handle("get-series-category", (_event, categoryId: number) =>
-    getSeriesCategory(categoryId),
+  ipcMain.handle("playlist:validate", (_event, credentials: Credentials) =>
+    validateCredentials(credentials),
   );
-
-  ipcMain.handle("get-serie-info", (_event, serieId: number) =>
-    getSerieInfo(serieId),
-  );
-
-  ipcMain.handle("auth:validate", (_event, credentials: Credentials) => {
-    return validateCredentials(credentials);
-  });
-
-  // ipcMain.on("electron-store:get", (event, key: keyof StoreSchema) => {
-  //   event.returnValue = store.get(key);
-  // });
-
-  // ipcMain.on("electron-store:set", (event, key: string, value: string) => {
-  //   event.returnValue = store.set(key, value);
-  // });
-
-  // ipcMain.on("electron-store:get-playlists", (event) => {
-  //   event.returnValue = store.get("playlists");
-  // });
-
-  // ipcMain.on("electron-store:append", (_event, key, value) => {
-  //   store.appendToArray(key, value);
-  // });
-
-  // ipcMain.on("electron-store:clear", () => store.clear());
 
   ipcMain.handle(
     "playlist:create",
     (_event, { name, credentials }: CreatePlaylist) => {
-      const playlistCreated = new CreatePlaylistUseCase(
-        new StorePlaylistRepository(),
-      ).execute({ name, credentials });
-
-      console.log("playlist", playlistCreated);
-
-      return playlistCreated;
+      createPlaylist({ name, credentials });
     },
+  );
+
+  ipcMain.handle("playlist:fetch", fetchPlaylists);
+
+  ipcMain.handle(
+    "playlist:update",
+    (_event, { playlistId, data }: UpdatePlaylist) => {
+      updatePlaylist({ playlistId, data });
+    },
+  );
+
+  ipcMain.handle("playlist:delete", (_event, playlistId: string) => {
+    const deletePlaylist = new DeletePlaylistUseCase(
+      new StorePlaylistRepository(),
+    );
+
+    deletePlaylist.execute({ playlistId });
+  });
+
+  ipcMain.handle("get-series-categories", fetchCategories);
+
+  ipcMain.handle("get-series-category", (_event, categoryId: number) =>
+    fetchSeries(categoryId),
+  );
+
+  ipcMain.handle("get-serie-info", (_event, serieId: number) =>
+    fetchSerieInfo(serieId),
   );
 
   // const child = fork(path.join(__dirname, "streamParser.js"));
