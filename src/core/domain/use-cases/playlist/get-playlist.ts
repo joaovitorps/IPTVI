@@ -12,10 +12,9 @@ export interface GetPlaylistUseCaseReturn {
 export class GetPlaylistUseCase {
   constructor(private readonly playlistRepository: PlaylistRepository) {}
 
-  async execute(
-    params: GetPlaylistUseCaseParams,
-  ): Promise<GetPlaylistUseCaseReturn> {
-    const playlist = this.playlistRepository.getPlaylist(params.id);
+  execute({ id }: GetPlaylistUseCaseParams): GetPlaylistUseCaseReturn {
+    const playlist = this.playlistRepository.getById(id);
+
     return { playlist };
   }
 }

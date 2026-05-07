@@ -1,15 +1,15 @@
 import { Playlist } from "../../entities/playlist";
 import { PlaylistRepository } from "../../repositories/playlist-repository";
 
-interface FetchPlaylistsUseCaseReturn {
+export interface FetchActivePlaylistsUseCaseReturn {
   playlists: Playlist[];
 }
 
-export class FetchPlaylistsUseCase {
+export class FetchActivePlaylistsUseCase {
   constructor(private readonly playlistRepository: PlaylistRepository) {}
 
-  execute(): FetchPlaylistsUseCaseReturn {
-    const playlists = this.playlistRepository.fetchAll();
+  execute(): FetchActivePlaylistsUseCaseReturn {
+    const playlists = this.playlistRepository.fetchActives();
 
     return { playlists };
   }
