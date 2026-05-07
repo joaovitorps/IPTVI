@@ -1,4 +1,3 @@
-import { Playlist } from "@/shared/types";
 import { useEffect, useState } from "react";
 import { Navigate, Outlet } from "react-router";
 
@@ -8,21 +7,18 @@ export const ProtectedRoute = () => {
 
   useEffect(() => {
     const checkAuth = async () => {
-      const playlists = window.electron.store.getPlaylists();
+      const playlists = await window.api.playlist.fetch();
 
-      const activePlaylistId = window.electron.store.get(
-        "activePlaylistId",
-      ) as string;
+      const activePlaylist = playlists.find(
+        (playlist) => playlist.isActive === true,
+      );
 
-      if (!activePlaylistId || !playlists || playlists.length === 0) {
+      if (!activePlaylist || !playlists || playlists.length === 0) {
         setIsAuthenticated(false);
         setIsVerifying(false);
         return;
       }
 
-      const activePlaylist = playlists.find(
-        (p: Playlist) => p.id === activePlaylistId,
-      );
       if (!activePlaylist) {
         setIsAuthenticated(false);
         setIsVerifying(false);
@@ -31,10 +27,10 @@ export const ProtectedRoute = () => {
 
       // Validate credentials on startup as per plan
       try {
-        const result = await window.authAPI.validateCredentials(
+        const result = await window.api.playlist.validate(
           activePlaylist.credentials,
         );
-        if (result.ok) {
+        if (result.isValid) {
           setIsAuthenticated(true);
         } else {
           setIsAuthenticated(false);

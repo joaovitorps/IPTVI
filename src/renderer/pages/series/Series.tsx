@@ -1,4 +1,4 @@
-import { Serie } from "@/shared/schemas";
+import { Serie } from "@/core/domain/entities/serie";
 import { Loader, Search, Star } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router";
@@ -15,6 +15,7 @@ export const Series = () => {
       try {
         setIsLoading(true);
         const res = await window.api.getSeriesCategory(Number(categoryId));
+        console.log(res);
         let seriesData: Serie[] = [];
         if (Array.isArray(res)) {
           seriesData = res;
@@ -69,9 +70,9 @@ export const Series = () => {
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6">
             {filteredSeries.map((serie) => (
               <div
-                key={serie.series_id}
+                key={serie.id}
                 onClick={() => {
-                  void navigate(`/serie/${serie.series_id}/info`);
+                  void navigate(`/serie/${serie.id}/info`);
                 }}
                 className="group cursor-pointer bg-gray-900 rounded-xl overflow-hidden border border-gray-800 hover:border-purple-500 transition-all transform hover:-translate-y-1"
               >

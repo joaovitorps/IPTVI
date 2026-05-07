@@ -1,4 +1,4 @@
-import { Episode } from "@/shared/schemas";
+import { Episode } from "@/core/domain/entities/episode";
 import { Clock, Play } from "lucide-react";
 import { useNavigate } from "react-router";
 
@@ -7,7 +7,7 @@ export const EpisodeInfo = ({
   serieId,
   seasonNumber,
 }: {
-  episodes: Episode[];
+  episodes: ReturnType<typeof Episode.create>[];
   serieId: string;
   seasonNumber: number;
 }) => {
@@ -34,9 +34,9 @@ export const EpisodeInfo = ({
           className="group flex items-center gap-4 p-4 bg-gray-900 hover:bg-gray-800 border border-gray-800 hover:border-purple-500/50 rounded-xl transition-all cursor-pointer"
         >
           <div className="relative w-40 aspect-video rounded-lg overflow-hidden bg-gray-800 flex-shrink-0">
-            {episode.info?.movie_image ? (
+            {episode.info?.movieImage ? (
               <img
-                src={episode.info.movie_image}
+                src={episode.info.movieImage}
                 alt={episode.title}
                 className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
               />
@@ -55,7 +55,7 @@ export const EpisodeInfo = ({
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
               <span className="text-purple-400 font-mono text-xs font-bold uppercase tracking-wider">
-                Episode {episode.episode_num}
+                Episode {episode.episodeNum}
               </span>
               {episode.info?.duration && (
                 <div className="flex items-center gap-1 text-xs text-gray-500">

@@ -1,6 +1,5 @@
+import { Credentials } from "@/core/domain/entities/object-values/credentials";
 import { Playlist } from "@/core/domain/entities/playlist";
-import { Credentials } from "@/shared/types";
-import { format } from "date-fns";
 import {
   Edit2,
   LoaderCircleIcon,
@@ -19,7 +18,8 @@ import { useAuthState } from "../stores/authStore";
 
 export const Login = () => {
   const playlists = useAuthState((state) => state.playlists) || [];
-  const updatePlaylists = useAuthState((state) => state.setPlaylists);
+  const fetchPlaylists = useAuthState((state) => state.fetchPlaylists);
+  const redirect = useAuthState((state) => state.redirect);
   const [formValues, setFormValues] = useState({
     server: "",
     username: "",
@@ -59,8 +59,8 @@ export const Login = () => {
   };
 
   useEffect(() => {
-    updatePlaylists(window.electron.store.getPlaylists());
-  }, [updatePlaylists]);
+    void fetchPlaylists();
+  }, [fetchPlaylists]);
 
   const handleSubmit = async (formData: FormData) => {
     setError(null);
@@ -69,50 +69,37 @@ export const Login = () => {
     const password = ((formData.get("password") as string) || "").trim();
     const name = ((formData.get("name") as string) || "").trim();
 
-    const credentials: Credentials = { server, username, password };
+    const credentials = new Credentials(server, username, password);
 
-    const isCredentialsValid =
-      await window.authAPI.validateCredentials(credentials);
+    const credentialsValidation =
+      await window.api.playlist.validate(credentials);
 
-    if (isCredentialsValid?.ok) {
-      const currentPlaylists = window.electron.store.getPlaylists();
-      let newPlaylists: Playlist[];
-      let playlistCreated: Playlist;
-
+    if (credentialsValidation.isValid) {
       if (editingPlaylistId) {
-        targetId = editingPlaylistId;
-        newPlaylists = currentPlaylists.map((p: Playlist) =>
-          p.id === editingPlaylistId ? { ...p, name, credentials } : p,
-        );
-        window.electron.store.set("playlists", newPlaylists);
-      } else {
-        playlistCreated = window.electron.playlist.create({
-          name,
-          credentials,
+        window.api.playlist.update({
+          playlistId: editingPlaylistId,
+          data: { name, credentials },
         });
 
-        console.log(playlistCreated);
+        await fetchPlaylists();
+        resetForm();
 
-        if (playlistCreated) {
+        // window.location.href = "/";
+      } else {
+        try {
+          await window.api.playlist.create({
+            name,
+            credentials,
+          });
+
+          await fetchPlaylists();
           window.location.href = "/";
+        } catch (error) {
+          setError(error.message);
         }
-
-        // targetId = randomUUID();
-        // const newPlaylist: Playlist = {
-        //   id: targetId,
-        //   name,
-        //   credentials,
-        //   is_active: 0,
-        //   created_at: format(new Date(), "yyyy-MM-dd HH:mm:ss"),
-        // };
-        // window.electron.store.appendToArray("playlists", newPlaylist);
       }
-
-      window.electron.store.set("activePlaylistId", playlistCreated?.id);
-      updatePlaylists(window.electron.store.getPlaylists());
-      window.location.href = "/";
     } else {
-      setError("Invalid credentials or server URL. Please check your details.");
+      setError(credentialsValidation.error);
     }
   };
 
@@ -136,26 +123,21 @@ export const Login = () => {
     );
   };
 
-  const removePlaylist = (e: React.MouseEvent, playlistId: string) => {
+  const removePlaylist = async (e: React.MouseEvent, playlistId: string) => {
     e.stopPropagation();
-    const newPlaylists = playlists.filter((p) => p.id !== playlistId);
-    window.electron.store.set("playlists", newPlaylists);
 
-    const activeId = window.electron.store.get("activePlaylistId");
-    if (activeId === playlistId) {
-      window.electron.store.set("activePlaylistId", "");
-    }
+    await window.api.playlist.delete(playlistId);
+    await fetchPlaylists();
 
-    updatePlaylists(newPlaylists);
     if (editingPlaylistId === playlistId) {
       resetForm();
     }
   };
 
-  const handlePlayPlaylist = (e: React.MouseEvent, playlistId: string) => {
+  const handlePlayPlaylist = (e: React.MouseEvent) => {
     e.stopPropagation();
-    window.electron.store.set("activePlaylistId", playlistId);
-    window.location.href = "/";
+
+    redirect();
   };
 
   return (
@@ -193,7 +175,7 @@ export const Login = () => {
               >
                 <div className="flex flex-col">
                   <span className="font-semibold text-zinc-200">
-                    {playlist.name || "Unnamed Profile"}
+                    {playlist.name}
                   </span>
                   <span className="text-xs text-zinc-500 truncate max-w-37.5">
                     {playlist.credentials.server}
@@ -201,7 +183,7 @@ export const Login = () => {
                 </div>
                 <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                   <button
-                    onClick={(e) => handlePlayPlaylist(e, playlist.id)}
+                    onClick={handlePlayPlaylist}
                     className="p-2 text-zinc-400 hover:text-green-500"
                     title="Play"
                   >
@@ -217,7 +199,7 @@ export const Login = () => {
                     <Edit2 size={16} />
                   </button>
                   <button
-                    onClick={(e) => removePlaylist(e, playlist.id)}
+                    onClick={(e) => void removePlaylist(e, playlist.id)}
                     className="p-2 text-zinc-400 hover:text-red-500"
                   >
                     <Trash2 size={16} />

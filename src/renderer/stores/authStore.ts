@@ -1,4 +1,4 @@
-import { Playlist } from "@/shared/types";
+import { Playlist } from "@/core/domain/entities/playlist";
 import { create } from "zustand";
 
 const initialState = {
@@ -15,10 +15,26 @@ interface AuthState {
   isAuthenticated: boolean;
   loading: boolean;
   error: boolean;
-  setPlaylists: (playlists: Playlist[]) => void;
+
+  fetchPlaylists: () => Promise<void>;
+  redirect: () => void;
 }
 
 export const useAuthState = create<AuthState>()((set) => ({
   ...initialState,
-  setPlaylists: (playlists) => set(() => ({ playlists: playlists || [] })),
+
+  fetchPlaylists: async () => {
+    try {
+      set({ loading: true });
+      const playlists = await window.api.playlist.fetch();
+      set({ playlists: playlists || [], loading: false });
+    } catch (error) {
+      console.error("Failed to fetch playlists:", error);
+      set({ error: true, loading: false });
+    }
+  },
+  redirect: () => {
+    set({ loading: true });
+    window.location.href = "/";
+  },
 }));

@@ -1,4 +1,4 @@
-import { SerieInfo } from "@/shared/schemas";
+import { SerieInfo } from "@/core/domain/entities/serie-info";
 import { Calendar, Clock, Star } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Outlet, useParams } from "react-router";
@@ -6,7 +6,8 @@ import { Outlet, useParams } from "react-router";
 import { EpisodeInfo } from "./EpisodeInfo";
 
 export const SerieInfoView = () => {
-  const [serieInfo, setSerieInfo] = useState<SerieInfo>();
+  const [serieInfo, setSerieInfo] =
+    useState<ReturnType<typeof SerieInfo.create>>();
   const [seasonNumber, setSeasonNumber] = useState<number>(1);
   const [isLoading, setIsLoading] = useState(true);
   const { serieId } = useParams();
@@ -18,7 +19,7 @@ export const SerieInfoView = () => {
         const res = await window.api.getSerieInfo(Number(serieId));
         setSerieInfo(res);
         if (res.seasons && res.seasons.length > 0) {
-          setSeasonNumber(res.seasons[0].season_number);
+          setSeasonNumber(res.seasons[0].seasonNumber);
         }
       } catch (error) {
         console.error("Failed to fetch serie info:", error);
@@ -77,7 +78,7 @@ export const SerieInfoView = () => {
                 </div>
                 <div className="flex items-center gap-1">
                   <Clock className="w-4 h-4" />
-                  <span>{serieInfo.info.episode_run_time} min</span>
+                  <span>{serieInfo.info.episodeRunTime} min</span>
                 </div>
                 <div className="flex items-center gap-1">
                   <Calendar className="w-4 h-4" />
@@ -105,16 +106,16 @@ export const SerieInfoView = () => {
               {serieInfo.seasons.map((season) => (
                 <button
                   key={season.id}
-                  onClick={() => setSeasonNumber(season.season_number)}
+                  onClick={() => setSeasonNumber(season.seasonNumber)}
                   className={`text-left px-4 py-3 rounded-lg transition-all ${
-                    seasonNumber === season.season_number
+                    seasonNumber === season.seasonNumber
                       ? "bg-purple-600 text-white shadow-lg shadow-purple-900/20"
                       : "bg-gray-900 text-gray-400 hover:bg-gray-800 hover:text-white"
                   }`}
                 >
                   <div className="font-semibold">{season.name}</div>
                   <div className="text-xs opacity-60">
-                    {season.episode_count} Episodes
+                    {season.episodeCount} Episodes
                   </div>
                 </button>
               ))}
