@@ -1,9 +1,11 @@
 import { Playlist } from "../entities/playlist";
 
 export interface PlaylistRepository {
+  getById(id: string): Playlist | null;
+  getByUsername(username: string): Playlist | null;
+  fetchAll(): Playlist[];
+  fetchActives(): Playlist[];
   create(playlist: Playlist): Playlist;
-  getActivePlaylist(): Playlist | null;
-  fetchPlaylist(): Playlist[];
-  getPlaylist(id: string): Playlist | null;
-  updatePlaylist(id: string, playlist: Playlist): void;
+  update(id: string, data: Playlist): Playlist | false;
+  delete(playlistId: string): void;
 }
