@@ -1,35 +1,30 @@
+import { Credentials } from "@/core/domain/entities/object-values/credentials";
 import { Playlist } from "@/core/domain/entities/playlist";
 import { describe, expect, it } from "vitest";
 
 describe("Playlist Entity", () => {
   it("should be able to create a new playlist", () => {
-    const props = {
-      id: "1",
+    const playlist = Playlist.create({
       name: "Test Playlist",
-      credentials: { server: "http://test.com", username: "u", password: "p" },
-      is_active: 1,
-      created_at: new Date().toISOString(),
-    };
-
-    const playlist = Playlist.create(props);
+      credentials: Credentials.create("http://test.com", "u", "p"),
+      isActive: true,
+    });
 
     expect(playlist).toBeInstanceOf(Playlist);
-    expect(playlist.id).toBe("1");
     expect(playlist.name).toBe("Test Playlist");
   });
 
   it("should be able to convert to JSON", () => {
-    const props = {
-      id: "1",
+    const playlist = Playlist.create({
       name: "Test Playlist",
-      credentials: { server: "http://test.com", username: "u", password: "p" },
-      is_active: 1,
-      created_at: new Date().toISOString(),
-    };
-
-    const playlist = Playlist.create(props);
+      credentials: Credentials.create("http://test.com", "u", "p"),
+      isActive: true,
+    });
     const json = playlist.toJSON();
 
-    expect(json).toEqual(props);
+    expect(json).toMatchObject({
+      name: "Test Playlist",
+      isActive: true,
+    });
   });
 });

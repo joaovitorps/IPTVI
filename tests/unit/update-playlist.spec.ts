@@ -12,14 +12,18 @@ describe("Update playlist use case", () => {
     sut = new UpdatePlaylistUseCase(repository);
   });
 
-  it("should be able to update a playlist", async () => {
-    const playlist = Playlist.create({
-      id: "1",
-      name: "Old Name",
-      credentials: { server: "http://test.com", username: "u", password: "p" },
-      is_active: 0,
-      created_at: new Date().toISOString(),
-    });
+  it("should be able to update a playlist", () => {
+    const playlist = Playlist.create(
+      {
+        name: "Old Name",
+        credentials: {
+          server: "http://test.com",
+          username: "u",
+          password: "p",
+        },
+      },
+      "1",
+    );
 
     repository.playlists.push(playlist);
 
@@ -28,7 +32,7 @@ describe("Update playlist use case", () => {
       name: "New Name",
     });
 
-    await sut.execute({ id: "1", playlist: updatedPlaylist });
+    sut.execute({ id: "1", playlist: updatedPlaylist });
 
     expect(repository.playlists[0].name).toBe("New Name");
   });

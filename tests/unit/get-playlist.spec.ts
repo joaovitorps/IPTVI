@@ -12,25 +12,29 @@ describe("Get playlist use case", () => {
     sut = new GetPlaylistUseCase(repository);
   });
 
-  it("should be able to get a playlist by id", async () => {
-    const playlist = Playlist.create({
-      id: "1",
-      name: "Test Playlist",
-      credentials: { server: "http://test.com", username: "u", password: "p" },
-      is_active: 0,
-      created_at: new Date().toISOString(),
-    });
+  it("should be able to get a playlist by id", () => {
+    const playlist = Playlist.create(
+      {
+        name: "Test Playlist",
+        credentials: {
+          server: "http://test.com",
+          username: "u",
+          password: "p",
+        },
+      },
+      "1",
+    );
 
     repository.playlists.push(playlist);
 
-    const { playlist: result } = await sut.execute({ id: "1" });
+    const { playlist: result } = sut.execute({ id: "1" });
 
     expect(result).toBeInstanceOf(Playlist);
     expect(result?.id).toBe("1");
   });
 
-  it("should return null if playlist is not found", async () => {
-    const { playlist: result } = await sut.execute({ id: "non-existent-id" });
+  it("should return null if playlist is not found", () => {
+    const { playlist: result } = sut.execute({ id: "non-existent-id" });
     expect(result).toBeNull();
   });
 });

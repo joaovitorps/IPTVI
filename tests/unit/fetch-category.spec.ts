@@ -5,16 +5,15 @@ import { FetchCategoryUseCase } from "@/core/domain/use-cases/category/fetch-cat
 let sut: FetchCategoryUseCase;
 let repository: InMemoryCategoryRepository;
 
-// eslint-disable-next-line @typescript-eslint/require-await
-describe("Fetch categories use case", async () => {
+describe("Fetch categories use case", () => {
   it("should be able to fetch the categories", async () => {
     repository = new InMemoryCategoryRepository();
     sut = new FetchCategoryUseCase(repository);
     repository.categories.push(
-      Category.create({ id: 1, name: "test", parentId: 1 }),
+      Category.create({ name: "test", parentId: 1 }, "1"),
     );
 
-    const { categories } = await sut.execute({});
+    const { categories } = await sut.execute();
 
     expect(categories[0].name).toEqual("test");
   });
