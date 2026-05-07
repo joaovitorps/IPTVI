@@ -1,22 +1,13 @@
+import { Entity } from "./entity";
+
 export interface CategoryProps {
-  id: number;
   name: string;
   parentId: number;
 }
 
-export class Category {
-  private props: CategoryProps;
-
-  constructor(props: CategoryProps) {
-    this.props = props;
-  }
-
-  static create(props: CategoryProps) {
-    return new Category(props).toJSON();
-  }
-
-  get id(): number {
-    return this.props.id;
+export class Category extends Entity<CategoryProps> {
+  static create(props: CategoryProps, id?: string) {
+    return new Category(props, id).toJSON();
   }
 
   get name(): string {
@@ -27,10 +18,10 @@ export class Category {
     return this.props.parentId;
   }
 
-  /**
-   * Returns a plain object for serialization.
-   */
   public toJSON() {
-    return this.props as Category;
+    return {
+      id: this.id,
+      ...this.props,
+    };
   }
 }
