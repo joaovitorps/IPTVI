@@ -1,4 +1,4 @@
-import { Playlist } from "@/shared/types";
+import { Playlist } from "@/core/domain/entities/playlist";
 import ElectronStore from "electron-store";
 
 import { env } from "./env";

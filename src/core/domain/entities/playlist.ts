@@ -1,48 +1,48 @@
+import { Optional } from "@/@types/optional";
 import { Credentials } from "@/shared/types";
 
-export interface PlaylistProps {
-  id: string;
+import { Entity } from "./entity";
+
+interface PlaylistProps {
   name: string;
   credentials: Credentials;
-  is_active: number;
-  created_at: string;
+  isActive?: number;
+  createdAt: Date;
+  updatedAt?: Date;
 }
 
-export class Playlist {
-  private props: PlaylistProps;
-
-  constructor(props: PlaylistProps) {
-    this.props = props;
+export class Playlist extends Entity<PlaylistProps> {
+  static create(
+    props: Optional<PlaylistProps, "isActive" | "createdAt">,
+    id?: string,
+  ) {
+    return new Playlist({ ...props, isActive: 0, createdAt: new Date() }, id);
   }
 
-  static create(props: PlaylistProps) {
-    return new Playlist(props);
-  }
-
-  get id(): string {
-    return this.props.id;
-  }
-
-  get name(): string {
+  get name() {
     return this.props.name;
   }
 
-  get credentials(): Credentials {
+  get credentials() {
     return this.props.credentials;
   }
 
-  get is_active(): number {
-    return this.props.is_active;
+  get isActive() {
+    return this.props.isActive;
   }
 
-  get created_at(): string {
-    return this.props.created_at;
+  get createdAt() {
+    return this.props.createdAt;
+  }
+
+  get updatedAt() {
+    return this.props.updatedAt;
   }
 
   /**
    * Returns a plain object for serialization.
    */
-  public toJSON(): PlaylistProps {
+  public toJSON() {
     return { ...this.props };
   }
 }

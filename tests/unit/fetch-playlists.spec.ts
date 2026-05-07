@@ -1,18 +1,18 @@
 import { Playlist } from "@/core/domain/entities/playlist";
 import { InMemoryPlaylistRepository } from "@/core/domain/repositories/in-memory/in-memory-playlist-repository";
-import { FetchPlaylists } from "@/core/domain/use-cases/playlist/fetch-playlists";
+import { FetchPlaylistsUseCase } from "@/core/domain/use-cases/playlist/fetch-playlists";
 import { beforeEach, describe, expect, it } from "vitest";
 
 describe("Fetch playlists use case", () => {
   let repository: InMemoryPlaylistRepository;
-  let sut: FetchPlaylists;
+  let sut: FetchPlaylistsUseCase;
 
   beforeEach(() => {
     repository = new InMemoryPlaylistRepository();
-    sut = new FetchPlaylists(repository);
+    sut = new FetchPlaylistsUseCase(repository);
   });
 
-  it("should be able to fetch all playlists", () => {
+  it("should be able to fetch all playlists", async () => {
     const playlist1 = Playlist.create({
       id: "1",
       name: "Test Playlist 1",
@@ -39,15 +39,15 @@ describe("Fetch playlists use case", () => {
 
     repository.playlists.push(playlist1, playlist2);
 
-    const result = sut.execute();
+    const { playlists } = await sut.execute({});
 
-    expect(result).toHaveLength(2);
-    expect(result).toContain(playlist1);
-    expect(result).toContain(playlist2);
+    expect(playlists).toHaveLength(2);
+    expect(playlists).toContain(playlist1);
+    expect(playlists).toContain(playlist2);
   });
 
-  it("should return an empty array if there are no playlists", () => {
-    const result = sut.execute();
-    expect(result).toEqual([]);
+  it("should return an empty array if there are no playlists", async () => {
+    const { playlists } = await sut.execute({});
+    expect(playlists).toEqual([]);
   });
 });

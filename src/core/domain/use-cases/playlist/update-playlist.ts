@@ -1,10 +1,20 @@
-import { Playlist } from "../entities/playlist";
-import { PlaylistRepository } from "../repositories/playlist-repository";
+import { Playlist } from "../../entities/playlist";
+import { PlaylistRepository } from "../../repositories/playlist-repository";
 
-export class UpdatePlaylist {
-  constructor(private playlistRepository: PlaylistRepository) {}
+export interface UpdatePlaylistUseCaseParams {
+  id: string;
+  playlist: Playlist;
+}
 
-  execute(id: string, playlist: Playlist) {
-    return this.playlistRepository.updatePlaylist(id, playlist);
+export interface UpdatePlaylistUseCaseReturn {}
+
+export class UpdatePlaylistUseCase {
+  constructor(private readonly playlistRepository: PlaylistRepository) {}
+
+  async execute(
+    params: UpdatePlaylistUseCaseParams,
+  ): Promise<UpdatePlaylistUseCaseReturn> {
+    this.playlistRepository.updatePlaylist(params.id, params.playlist);
+    return {};
   }
 }

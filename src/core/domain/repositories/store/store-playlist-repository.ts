@@ -3,8 +3,10 @@ import { Playlist } from "../../entities/playlist";
 import { PlaylistRepository } from "../playlist-repository";
 
 export class StorePlaylistRepository implements PlaylistRepository {
-  createPlaylist(playlist: Playlist): void {
+  create(playlist: Playlist): Playlist {
     store.appendToArray("playlists", playlist.toJSON());
+
+    return playlist;
   }
 
   getPlaylist(id: string): Playlist | null {

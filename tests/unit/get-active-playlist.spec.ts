@@ -1,18 +1,18 @@
 import { Playlist } from "@/core/domain/entities/playlist";
 import { InMemoryPlaylistRepository } from "@/core/domain/repositories/in-memory/in-memory-playlist-repository";
-import { GetActivePlaylist } from "@/core/domain/use-cases/playlist/get-active-playlist";
+import { GetActivePlaylistUseCase } from "@/core/domain/use-cases/playlist/get-active-playlist";
 import { beforeEach, describe, expect, it } from "vitest";
 
 describe("Get active playlist use case", () => {
   let repository: InMemoryPlaylistRepository;
-  let sut: GetActivePlaylist;
+  let sut: GetActivePlaylistUseCase;
 
   beforeEach(() => {
     repository = new InMemoryPlaylistRepository();
-    sut = new GetActivePlaylist(repository);
+    sut = new GetActivePlaylistUseCase(repository);
   });
 
-  it("should be able to get the active playlist", () => {
+  it("should be able to get the active playlist", async () => {
     const playlist = Playlist.create({
       id: "1",
       name: "Test Playlist",
@@ -24,14 +24,14 @@ describe("Get active playlist use case", () => {
     repository.playlists.push(playlist);
     repository.activePlaylistId = "1";
 
-    const result = sut.execute();
+    const { playlist: result } = await sut.execute({});
 
     expect(result).toBeInstanceOf(Playlist);
     expect(result?.id).toBe("1");
   });
 
-  it("should return null if there is no active playlist", () => {
-    const result = sut.execute();
+  it("should return null if there is no active playlist", async () => {
+    const { playlist: result } = await sut.execute({});
     expect(result).toBeNull();
   });
 });

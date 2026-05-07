@@ -1,5 +1,6 @@
+import { Playlist } from "@/core/domain/entities/playlist";
 import { AppendToArrayFn } from "@/shared/store";
-import { Credentials } from "@/shared/types";
+import { CreatePlaylist, Credentials } from "@/shared/types";
 import { contextBridge, ipcRenderer } from "electron";
 
 contextBridge.exposeInMainWorld("api", {
@@ -25,5 +26,11 @@ contextBridge.exposeInMainWorld("electron", {
     clear: () => ipcRenderer.send("electron-store:clear"),
     appendToArray: ((key, value) =>
       ipcRenderer.send("electron-store:append", key, value)) as AppendToArrayFn,
+  },
+  playlist: {
+    create: ({ name, credentials }: CreatePlaylist) => {
+      console.log("preload", name, credentials);
+      ipcRenderer.invoke("playlist:create", { name, credentials });
+    },
   },
 });

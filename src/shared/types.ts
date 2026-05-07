@@ -1,15 +1,8 @@
 import { Category } from "@/core/domain/entities/category";
+import { Playlist, PlaylistProps } from "@/core/domain/entities/playlist";
 
 import { Serie, SerieInfo } from "./schemas";
 import { AppendToArrayFn, StoreSchema } from "./store";
-
-export interface Playlist {
-  id: string;
-  name: string;
-  credentials: Credentials;
-  is_active: number;
-  created_at: string;
-}
 
 export interface Credentials {
   server: string;
@@ -37,6 +30,11 @@ export interface RemuxProgress {
   message: string;
 }
 
+export interface CreatePlaylist {
+  name: string;
+  credentials: Credentials;
+}
+
 declare global {
   interface Window {
     api: {
@@ -52,6 +50,9 @@ declare global {
       saveCredentials: (credentials: Credentials) => void;
     };
     electron: {
+      playlist: {
+        create: ({ name, credentials }: CreatePlaylist) => Playlist;
+      };
       store: {
         get: <K extends keyof StoreSchema>(key: K) => StoreSchema[K];
         getPlaylists: () => Playlist[];

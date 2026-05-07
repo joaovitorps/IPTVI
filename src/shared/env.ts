@@ -2,7 +2,7 @@ import "dotenv/config";
 import z from "zod";
 
 const envSchema = z.object({
-  NODE_ENV: z.string(),
+  NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
   STORE_ENCRYPTION_KEY: z.string(),
 });
 

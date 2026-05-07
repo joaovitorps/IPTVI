@@ -12,8 +12,10 @@ export class InMemoryPlaylistRepository implements PlaylistRepository {
   fetchPlaylist(): Playlist[] {
     return this.playlists;
   }
-  createPlaylist(playlist: Playlist): void {
+  create(playlist: Playlist): Playlist {
     this.playlists.push(playlist);
+
+    return playlist;
   }
   getPlaylist(id: string): Playlist | null {
     return this.playlists.find((p) => p.id === id) || null;

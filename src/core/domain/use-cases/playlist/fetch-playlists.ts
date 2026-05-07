@@ -1,9 +1,19 @@
+import { Playlist } from "../../entities/playlist";
 import { PlaylistRepository } from "../../repositories/playlist-repository";
 
-export class FetchPlaylists {
-  constructor(private playlistRepository: PlaylistRepository) {}
+export interface FetchPlaylistsUseCaseParams {}
 
-  execute() {
-    return this.playlistRepository.fetchPlaylist();
+export interface FetchPlaylistsUseCaseReturn {
+  playlists: Playlist[];
+}
+
+export class FetchPlaylistsUseCase {
+  constructor(private readonly playlistRepository: PlaylistRepository) {}
+
+  async execute(
+    _params: FetchPlaylistsUseCaseParams,
+  ): Promise<FetchPlaylistsUseCaseReturn> {
+    const playlists = this.playlistRepository.fetchPlaylist();
+    return { playlists };
   }
 }

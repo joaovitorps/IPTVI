@@ -1,4 +1,5 @@
-import { Credentials, Playlist } from "@/shared/types";
+import { Playlist } from "@/core/domain/entities/playlist";
+import { Credentials } from "@/shared/types";
 import { format } from "date-fns";
 import {
   Edit2,
@@ -76,7 +77,7 @@ export const Login = () => {
     if (isCredentialsValid?.ok) {
       const currentPlaylists = window.electron.store.getPlaylists();
       let newPlaylists: Playlist[];
-      let targetId: string;
+      let playlistCreated: Playlist;
 
       if (editingPlaylistId) {
         targetId = editingPlaylistId;
@@ -85,18 +86,29 @@ export const Login = () => {
         );
         window.electron.store.set("playlists", newPlaylists);
       } else {
-        targetId = crypto.randomUUID();
-        const newPlaylist: Playlist = {
-          id: targetId,
+        playlistCreated = window.electron.playlist.create({
           name,
           credentials,
-          is_active: 0,
-          created_at: format(new Date(), "yyyy-MM-dd HH:mm:ss"),
-        };
-        window.electron.store.appendToArray("playlists", newPlaylist);
+        });
+
+        console.log(playlistCreated);
+
+        if (playlistCreated) {
+          window.location.href = "/";
+        }
+
+        // targetId = randomUUID();
+        // const newPlaylist: Playlist = {
+        //   id: targetId,
+        //   name,
+        //   credentials,
+        //   is_active: 0,
+        //   created_at: format(new Date(), "yyyy-MM-dd HH:mm:ss"),
+        // };
+        // window.electron.store.appendToArray("playlists", newPlaylist);
       }
 
-      window.electron.store.set("activePlaylistId", targetId);
+      window.electron.store.set("activePlaylistId", playlistCreated?.id);
       updatePlaylists(window.electron.store.getPlaylists());
       window.location.href = "/";
     } else {
