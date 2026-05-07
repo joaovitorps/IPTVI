@@ -31,7 +31,7 @@ export const AccountInfo = z.object({
 });
 
 const SeriesCategory = z.object({
-  category_id: z.coerce.number(),
+  category_id: z.string(),
   category_name: z.string(),
   parent_id: z.coerce.number(),
 });
@@ -41,7 +41,7 @@ export const SeriesCategories = z.array(SeriesCategory);
 const Serie = z.object({
   num: z.coerce.number().optional(),
   name: z.string(),
-  series_id: z.coerce.number().optional(),
+  series_id: z.coerce.string().optional(),
   cover: z.string(),
   plot: z.string(),
   cast: z.string(),

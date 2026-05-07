@@ -1,14 +1,8 @@
 import { Category } from "@/core/domain/entities/category";
-import { Playlist, PlaylistProps } from "@/core/domain/entities/playlist";
+import { Credentials } from "@/core/domain/entities/object-values/credentials";
+import { Playlist } from "@/core/domain/entities/playlist";
 
 import { Serie, SerieInfo } from "./schemas";
-import { AppendToArrayFn, StoreSchema } from "./store";
-
-export interface Credentials {
-  server: string;
-  username: string;
-  password: string;
-}
 
 export interface StreamTrack {
   index: number;
@@ -35,33 +29,25 @@ export interface CreatePlaylist {
   credentials: Credentials;
 }
 
+export interface UpdatePlaylist {
+  playlistId: string;
+  data: Partial<Pick<Playlist, "name" | "credentials" | "isActive">>;
+}
+
 declare global {
   interface Window {
     api: {
       getSeriesCategories: () => Promise<Category[]>;
       getSeriesCategory: (categoryId: number) => Promise<Serie[]>;
       getSerieInfo: (serieId: number) => Promise<SerieInfo>;
-    };
-    authAPI: {
-      validateCredentials: (
-        credentials: Credentials,
-      ) => Promise<{ ok: boolean; status: number; data: unknown }>;
-      getCredentials: () => Promise<string>;
-      saveCredentials: (credentials: Credentials) => void;
-    };
-    electron: {
       playlist: {
-        create: ({ name, credentials }: CreatePlaylist) => Playlist;
-      };
-      store: {
-        get: <K extends keyof StoreSchema>(key: K) => StoreSchema[K];
-        getPlaylists: () => Playlist[];
-        set: <K extends keyof StoreSchema>(
-          key: K,
-          value: StoreSchema[K],
-        ) => void;
-        clear: () => void;
-        appendToArray: AppendToArrayFn;
+        validate: (
+          credentials: Credentials,
+        ) => Promise<{ isValid: true } | { isValid: false; error: string }>;
+        fetch: () => Promise<Playlist[]>;
+        create: ({ name, credentials }: CreatePlaylist) => Promise<Playlist>;
+        update: ({ playlistId, data }: UpdatePlaylist) => Playlist | false;
+        delete: (playlistId: string) => Promise<void>;
       };
     };
   }
