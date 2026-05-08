@@ -75,4 +75,43 @@ describe("registerMainIpc", () => {
     expect(fetchSeries).toBeTypeOf("function");
     expect(fetchSerieInfo).toBeTypeOf("function");
   });
+
+  it("keeps playlist mutation handlers without return payload", () => {
+    const handle = vi.fn();
+    const createPlaylistMock = vi.mocked(createPlaylist);
+    const updatePlaylistMock = vi.mocked(updatePlaylist);
+
+    createPlaylistMock.mockReturnValue({} as never);
+    updatePlaylistMock.mockReturnValue({} as never);
+
+    registerMainIpc({ handle } as unknown as IpcMain);
+
+    const createHandler = handle.mock.calls.find(
+      ([channel]) => channel === "playlist:create",
+    )?.[1] as (_event: unknown, payload: unknown) => unknown;
+    const updateHandler = handle.mock.calls.find(
+      ([channel]) => channel === "playlist:update",
+    )?.[1] as (_event: unknown, payload: unknown) => unknown;
+
+    const createResult = createHandler(null, {
+      name: "My Playlist",
+      credentials: { server: "http://server", username: "user", password: "pass" },
+    });
+
+    const updateResult = updateHandler(null, {
+      playlistId: "playlist-id",
+      data: { name: "Updated" },
+    });
+
+    expect(createPlaylistMock).toHaveBeenCalledWith({
+      name: "My Playlist",
+      credentials: { server: "http://server", username: "user", password: "pass" },
+    });
+    expect(updatePlaylistMock).toHaveBeenCalledWith({
+      playlistId: "playlist-id",
+      data: { name: "Updated" },
+    });
+    expect(createResult).toBeUndefined();
+    expect(updateResult).toBeUndefined();
+  });
 });

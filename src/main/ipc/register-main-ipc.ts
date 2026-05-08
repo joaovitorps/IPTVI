@@ -18,13 +18,13 @@ export const registerMainIpc = (ipcMain: IpcMain) => {
   );
 
   ipcMain.handle("playlist:create", (_event, { name, credentials }: CreatePlaylist) => {
-    return createPlaylist({ name, credentials });
+    createPlaylist({ name, credentials });
   });
 
   ipcMain.handle("playlist:fetch", fetchPlaylists);
 
   ipcMain.handle("playlist:update", (_event, { playlistId, data }: UpdatePlaylist) => {
-    return updatePlaylist({ playlistId, data });
+    updatePlaylist({ playlistId, data });
   });
 
   ipcMain.handle("playlist:delete", (_event, playlistId: string) => {
