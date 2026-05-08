@@ -1,4 +1,4 @@
-import { Category } from "../../entities/category";
+import { Category } from "../../entities/series/category";
 import { CategoryRepository } from "../category-repository";
 
 export class InMemoryCategoryRepository implements CategoryRepository {

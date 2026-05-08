@@ -1,4 +1,4 @@
-import { Entity } from "./entity";
+import { Entity } from "../entity";
 import { Episode } from "./episode";
 import { Season } from "./season";
 import { Serie } from "./serie";

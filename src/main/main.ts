@@ -1,9 +1,12 @@
 import { Credentials } from "@/core/domain/entities/object-values/credentials";
 import { StorePlaylistRepository } from "@/core/domain/repositories/store/store-playlist-repository";
 import { DeletePlaylistUseCase } from "@/core/domain/use-cases/playlist/delete-playlist";
+import { FetchActivePlaylistsUseCase } from "@/core/domain/use-cases/playlist/fetch-active-playlists";
 import { CreatePlaylist, UpdatePlaylist } from "@/shared/types";
 import { BrowserWindow, app, ipcMain } from "electron";
 import started from "electron-squirrel-startup";
+import { fork } from "node:child_process";
+import { watch } from "node:fs";
 import path, { dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -99,30 +102,28 @@ app.on("ready", () => {
     fetchSerieInfo(serieId),
   );
 
-  // const child = fork(path.join(__dirname, "streamParser.js"));
+  const child = fork(path.join(__dirname, "streamParser.js"));
 
-  // child.on("message", (message) => {
-  //   console.log(message, "from child");
-  // });
+  child.on("message", (message) => {
+    console.log(message, "from child");
+  });
 
-  // child.on("exit", (code) => {
-  //   console.log("child exited with code", code);
-  // });
+  child.on("exit", (code) => {
+    console.log("child exited with code", code);
+  });
 
-  // fs.watch("./", (eventType, filename) => {
-  //   console.log(`Event Name: ${eventType}`);
-  //   console.log(`File Triggered: ${filename}`);
-  // });
+  watch("./", (eventType, filename) => {
+    console.log(`Event Name: ${eventType}`);
+    console.log(`File Triggered: ${filename}`);
+  });
 
-  // const getActivePlaylist = new GetActivePlaylistUseCase(
-  //   new StorePlaylistRepository(),
-  // );
+  const fetchActivePlaylists = new FetchActivePlaylistsUseCase(
+    new StorePlaylistRepository(),
+  );
 
-  // const { playlist: currentPlaylist } = await getActivePlaylist.execute({});
+  const { playlists } = fetchActivePlaylists.execute();
 
-  // if (currentPlaylist) {
-  //   child.send(currentPlaylist.credentials);
-  // }
+  child.send(playlists[0].credentials);
 
   createWindow();
 });

@@ -1,8 +1,8 @@
 import { axiosInstance } from "@/shared/axios";
 import { SeriesCategories } from "@/shared/schemas";
 
-import { Category } from "../../entities/category";
 import { Credentials } from "../../entities/object-values/credentials";
+import { Category } from "../../entities/series/category";
 import { CategoryRepository } from "../category-repository";
 
 export class APICategoryRepository implements CategoryRepository {

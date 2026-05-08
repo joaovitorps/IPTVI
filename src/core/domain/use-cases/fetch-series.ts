@@ -1,4 +1,4 @@
-import { Serie } from "../entities/serie";
+import { Serie } from "../entities/series/serie";
 import { SeriesRepository } from "../repositories/series-repository";
 
 interface FetchSeriesUseCaseParams {

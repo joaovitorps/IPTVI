@@ -77,7 +77,7 @@ export const Player = () => {
 
   // Resume playback position
   const onCanPlay = () => {
-    const savedPositions = window.electron.store.get("playbackPositions") || {};
+    const savedPositions = window.api.store.get("playbackPositions") || {};
     const savedPosition = savedPositions[streamId!];
     if (savedPosition && playerRef.current) {
       playerRef.current.currentTime = savedPosition;

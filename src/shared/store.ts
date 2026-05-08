@@ -5,6 +5,7 @@ import { env } from "./env";
 
 export interface StoreSchema {
   playlists: Playlist[];
+  playbackPositions: string;
 }
 
 export type AppendToArrayFn = <K extends keyof StoreSchema>(
@@ -25,5 +26,6 @@ export const store = new AppStore({
   encryptionKey: env.STORE_ENCRYPTION_KEY, // Simplified encryption for local storage
   defaults: {
     playlists: [],
+    playbackPositions: "",
   },
 });

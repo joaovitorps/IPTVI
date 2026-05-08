@@ -1,4 +1,4 @@
-import { SerieInfo } from "../../entities/serie-info";
+import { SerieInfo } from "../../entities/series/serie-info";
 import { SeriesRepository } from "../../repositories/series-repository";
 
 interface FetchSerieInfoUseCaseParams {

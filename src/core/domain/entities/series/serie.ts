@@ -1,4 +1,4 @@
-import { Entity } from "./entity";
+import { Entity } from "../entity";
 
 export interface SeriesProps {
   num?: number;
@@ -83,9 +83,6 @@ export class Serie extends Entity<SeriesProps> {
     return this.props.categoryId;
   }
 
-  /**
-   * Returns a plain object for serialization.
-   */
   public toJSON() {
     return {
       id: this.id,

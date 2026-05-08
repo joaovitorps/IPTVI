@@ -1,6 +1,6 @@
-import { Category } from "@/core/domain/entities/category";
 import { Credentials } from "@/core/domain/entities/object-values/credentials";
 import { Playlist } from "@/core/domain/entities/playlist";
+import { Category } from "@/core/domain/entities/series/category";
 
 import { Serie, SerieInfo } from "./schemas";
 

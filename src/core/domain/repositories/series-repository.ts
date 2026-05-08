@@ -1,5 +1,5 @@
-import { Serie } from "../entities/serie";
-import { SerieInfo } from "../entities/serie-info";
+import { Serie } from "../entities/series/serie";
+import { SerieInfo } from "../entities/series/serie-info";
 
 export interface SeriesRepository {
   fetchByCategory(

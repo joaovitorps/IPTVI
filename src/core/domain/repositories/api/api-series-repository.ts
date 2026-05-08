@@ -6,9 +6,9 @@ import {
 
 import { Episode } from "../../entities/episode";
 import { Credentials } from "../../entities/object-values/credentials";
-import { Season } from "../../entities/season";
-import { Serie } from "../../entities/serie";
-import { SerieInfo } from "../../entities/serie-info";
+import { Season } from "../../entities/series/season";
+import { Serie } from "../../entities/series/serie";
+import { SerieInfo } from "../../entities/series/serie-info";
 import { SeriesRepository } from "../series-repository";
 
 export class APISeriesRepository implements SeriesRepository {
