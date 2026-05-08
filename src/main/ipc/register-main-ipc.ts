@@ -28,7 +28,7 @@ export const registerMainIpc = (ipcMain: IpcMain) => {
   });
 
   ipcMain.handle("playlist:delete", (_event, playlistId: string) => {
-    return deletePlaylist(playlistId);
+    deletePlaylist(playlistId);
   });
 
   ipcMain.handle("get-series-categories", async () => {

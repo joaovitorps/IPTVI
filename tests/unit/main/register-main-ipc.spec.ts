@@ -44,64 +44,69 @@ vi.mock("@/main/handlers/fetch-serie-info", () => ({
 }));
 
 describe("registerMainIpc", () => {
-  it("registers all expected IPC channels", () => {
+  it("registers all expected IPC channels with correct handler contract", async () => {
     const handle = vi.fn();
-
-    registerMainIpc({ handle } as unknown as IpcMain);
-
-    expect(handle).toHaveBeenCalledTimes(8);
-    expect(handle).toHaveBeenNthCalledWith(1, "playlist:validate", expect.any(Function));
-    expect(handle).toHaveBeenNthCalledWith(2, "playlist:create", expect.any(Function));
-    expect(handle).toHaveBeenNthCalledWith(3, "playlist:fetch", fetchPlaylists);
-    expect(handle).toHaveBeenNthCalledWith(4, "playlist:update", expect.any(Function));
-    expect(handle).toHaveBeenNthCalledWith(5, "playlist:delete", expect.any(Function));
-    expect(handle).toHaveBeenNthCalledWith(
-      6,
-      "get-series-categories",
-      expect.any(Function),
-    );
-    expect(handle).toHaveBeenNthCalledWith(
-      7,
-      "get-series-category",
-      expect.any(Function),
-    );
-    expect(handle).toHaveBeenNthCalledWith(8, "get-serie-info", expect.any(Function));
-
-    expect(validateCredentials).toBeTypeOf("function");
-    expect(createPlaylist).toBeTypeOf("function");
-    expect(updatePlaylist).toBeTypeOf("function");
-    expect(deletePlaylist).toBeTypeOf("function");
-    expect(fetchCategories).toBeTypeOf("function");
-    expect(fetchSeries).toBeTypeOf("function");
-    expect(fetchSerieInfo).toBeTypeOf("function");
-  });
-
-  it("keeps playlist mutation handlers without return payload", () => {
-    const handle = vi.fn();
+    const validateCredentialsMock = vi.mocked(validateCredentials);
     const createPlaylistMock = vi.mocked(createPlaylist);
     const updatePlaylistMock = vi.mocked(updatePlaylist);
+    const deletePlaylistMock = vi.mocked(deletePlaylist);
+    const fetchCategoriesMock = vi.mocked(fetchCategories);
+    const fetchSeriesMock = vi.mocked(fetchSeries);
+    const fetchSerieInfoMock = vi.mocked(fetchSerieInfo);
 
+    validateCredentialsMock.mockResolvedValue({ isValid: true, error: undefined });
     createPlaylistMock.mockReturnValue({} as never);
     updatePlaylistMock.mockReturnValue({} as never);
+    deletePlaylistMock.mockReturnValue({} as never);
+    fetchCategoriesMock.mockResolvedValue([]);
+    fetchSeriesMock.mockResolvedValue([]);
+    fetchSerieInfoMock.mockResolvedValue({} as never);
 
     registerMainIpc({ handle } as unknown as IpcMain);
 
-    const createHandler = handle.mock.calls.find(
-      ([channel]) => channel === "playlist:create",
-    )?.[1] as (_event: unknown, payload: unknown) => unknown;
-    const updateHandler = handle.mock.calls.find(
-      ([channel]) => channel === "playlist:update",
-    )?.[1] as (_event: unknown, payload: unknown) => unknown;
+    const channelHandlers = new Map<string, (...args: unknown[]) => unknown>(
+      handle.mock.calls.map(([channel, handler]) => [channel as string, handler]),
+    );
 
-    const createResult = createHandler(null, {
+    expect(handle).toHaveBeenCalledTimes(8);
+    expect(Array.from(channelHandlers.keys())).toEqual(
+      expect.arrayContaining([
+        "playlist:validate",
+        "playlist:create",
+        "playlist:fetch",
+        "playlist:update",
+        "playlist:delete",
+        "get-series-categories",
+        "get-series-category",
+        "get-serie-info",
+      ]),
+    );
+    expect(channelHandlers.get("playlist:fetch")).toBe(fetchPlaylists);
+
+    const validateResult = await channelHandlers.get("playlist:validate")!(null, {
+      server: "http://server",
+      username: "user",
+      password: "pass",
+    });
+    const createResult = channelHandlers.get("playlist:create")!(null, {
       name: "My Playlist",
       credentials: { server: "http://server", username: "user", password: "pass" },
     });
-
-    const updateResult = updateHandler(null, {
+    const updateResult = channelHandlers.get("playlist:update")!(null, {
       playlistId: "playlist-id",
       data: { name: "Updated" },
     });
+    const deleteResult = channelHandlers.get("playlist:delete")!(null, "playlist-id");
+    const categoriesResult = await channelHandlers.get("get-series-categories")!(null);
+    const seriesResult = await channelHandlers.get("get-series-category")!(null, 10);
+    const serieInfoResult = await channelHandlers.get("get-serie-info")!(null, 20);
+
+    expect(validateCredentialsMock).toHaveBeenCalledWith({
+      server: "http://server",
+      username: "user",
+      password: "pass",
+    });
+    expect(validateResult).toEqual({ isValid: true });
 
     expect(createPlaylistMock).toHaveBeenCalledWith({
       name: "My Playlist",
@@ -111,7 +116,16 @@ describe("registerMainIpc", () => {
       playlistId: "playlist-id",
       data: { name: "Updated" },
     });
+    expect(deletePlaylistMock).toHaveBeenCalledWith("playlist-id");
+    expect(fetchCategoriesMock).toHaveBeenCalledTimes(1);
+    expect(fetchSeriesMock).toHaveBeenCalledWith(10);
+    expect(fetchSerieInfoMock).toHaveBeenCalledWith(20);
+
     expect(createResult).toBeUndefined();
     expect(updateResult).toBeUndefined();
+    expect(deleteResult).toBeUndefined();
+    expect(categoriesResult).toEqual([]);
+    expect(seriesResult).toEqual([]);
+    expect(serieInfoResult).toEqual({});
   });
 });
