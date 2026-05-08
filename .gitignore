@@ -99,3 +99,6 @@ docs
 
 # AI
 .ai/
+
+# Local git worktrees
+.worktrees/
