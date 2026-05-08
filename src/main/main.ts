@@ -1,8 +1,5 @@
-import { Credentials } from "@/core/domain/entities/object-values/credentials";
 import { StorePlaylistRepository } from "@/core/domain/repositories/store/store-playlist-repository";
-import { DeletePlaylistUseCase } from "@/core/domain/use-cases/playlist/delete-playlist";
 import { FetchActivePlaylistsUseCase } from "@/core/domain/use-cases/playlist/fetch-active-playlists";
-import { CreatePlaylist, UpdatePlaylist } from "@/shared/types";
 import { BrowserWindow, app, ipcMain } from "electron";
 import started from "electron-squirrel-startup";
 import { fork } from "node:child_process";
@@ -10,13 +7,7 @@ import { watch } from "node:fs";
 import path, { dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { createPlaylist } from "./handlers/create-playlist";
-import { fetchCategories } from "./handlers/fetch-categories";
-import { fetchPlaylists } from "./handlers/fetch-playlists";
-import { fetchSerieInfo } from "./handlers/fetch-serie-info";
-import { fetchSeries } from "./handlers/fetch-series";
-import { updatePlaylist } from "./handlers/update-playlist";
-import { validateCredentials } from "./handlers/validate-credentials";
+import { registerMainIpc } from "./ipc/register-main-ipc";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -64,43 +55,7 @@ app.on("ready", () => {
   //   });
   // });
 
-  ipcMain.handle("playlist:validate", (_event, credentials: Credentials) =>
-    validateCredentials(credentials),
-  );
-
-  ipcMain.handle(
-    "playlist:create",
-    (_event, { name, credentials }: CreatePlaylist) => {
-      createPlaylist({ name, credentials });
-    },
-  );
-
-  ipcMain.handle("playlist:fetch", fetchPlaylists);
-
-  ipcMain.handle(
-    "playlist:update",
-    (_event, { playlistId, data }: UpdatePlaylist) => {
-      updatePlaylist({ playlistId, data });
-    },
-  );
-
-  ipcMain.handle("playlist:delete", (_event, playlistId: string) => {
-    const deletePlaylist = new DeletePlaylistUseCase(
-      new StorePlaylistRepository(),
-    );
-
-    deletePlaylist.execute({ playlistId });
-  });
-
-  ipcMain.handle("get-series-categories", fetchCategories);
-
-  ipcMain.handle("get-series-category", (_event, categoryId: number) =>
-    fetchSeries(categoryId),
-  );
-
-  ipcMain.handle("get-serie-info", (_event, serieId: number) =>
-    fetchSerieInfo(serieId),
-  );
+  registerMainIpc(ipcMain);
 
   const child = fork(path.join(__dirname, "streamParser.js"));
 
