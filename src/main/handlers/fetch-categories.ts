@@ -1,7 +1,7 @@
 import { APICategoryRepository } from "@/core/domain/repositories/api/api-category-repository";
 import { StorePlaylistRepository } from "@/core/domain/repositories/store/store-playlist-repository";
 import { FetchCategoryUseCase } from "@/core/domain/use-cases/category/fetch-category";
-import { CategoryDTO } from "@/shared/types/ipc";
+import { CategoryDTO } from "@/shared/types/dto";
 
 export const fetchCategories = async (): Promise<CategoryDTO[]> => {
   const storeRepo = new StorePlaylistRepository();

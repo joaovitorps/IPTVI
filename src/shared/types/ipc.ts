@@ -23,9 +23,3 @@ interface Failure {
 }
 
 export type ValidateReturn = Success | Failure;
-
-export interface CategoryDTO {
-  id: string;
-  name: string;
-  parentId: number;
-}

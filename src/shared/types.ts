@@ -1,7 +1,6 @@
 import { Playlist } from "@/core/domain/entities/playlist";
-import { Category } from "@/core/domain/entities/series/category";
 
-import { Serie, SerieInfo } from "./schemas";
+import { CategoryDTO, SerieDTO } from "./types/dto";
 import { ValidateParams, ValidateReturn } from "./types/ipc";
 
 export interface StreamTrack {
@@ -50,8 +49,6 @@ export interface UpdatePlaylist {
 declare global {
   interface Window {
     api: {
-      getSeriesCategory: (categoryId: number) => Promise<Serie[]>;
-      getSerieInfo: (serieId: number) => Promise<SerieInfo>;
       playlist: {
         activate: (playlistId: string) => Promise<void>;
         validate: (params: ValidateParams) => Promise<ValidateReturn>;
@@ -66,7 +63,11 @@ declare global {
         delete: (playlistId: string) => Promise<void>;
       };
       category: {
-        fetch: () => Promise<Category[]>;
+        fetch: () => Promise<CategoryDTO[]>;
+      };
+      serie: {
+        getById: (serieId: number) => Promise<SerieDTO>;
+        fetchByCategoryId: (categoryId: number) => Promise<SerieDTO[]>;
       };
     };
   }

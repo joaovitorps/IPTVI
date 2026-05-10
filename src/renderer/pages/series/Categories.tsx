@@ -1,10 +1,10 @@
-import { Category } from "@/core/domain/entities/series/category";
+import { CategoryDTO } from "@/shared/types/dto";
 import { Search } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router";
 
 export const Categories = () => {
-  const [categories, setCategories] = useState<Category[]>([]);
+  const [categories, setCategories] = useState<CategoryDTO[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();

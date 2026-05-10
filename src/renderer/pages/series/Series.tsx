@@ -1,10 +1,10 @@
-import { Serie } from "@/core/domain/entities/serie";
+import { SerieDTO } from "@/shared/types/dto";
 import { Loader, Search, Star } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router";
 
 export const Series = () => {
-  const [series, setSeries] = useState<Serie[]>([]);
+  const [series, setSeries] = useState<SerieDTO[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const { categoryId } = useParams();
@@ -14,18 +14,20 @@ export const Series = () => {
     const getSeriesCategory = async () => {
       try {
         setIsLoading(true);
-        const res = await window.api.getSeriesCategory(Number(categoryId));
-        console.log(res);
-        let seriesData: Serie[] = [];
+        const res = await window.api.serie.fetchByCategoryId(
+          Number(categoryId),
+        );
+
+        let seriesData: SerieDTO[] = [];
         if (Array.isArray(res)) {
           seriesData = res;
         } else if (
           res &&
           typeof res === "object" &&
           "data" in res &&
-          Array.isArray((res as { data: Serie[] }).data)
+          Array.isArray((res as { data: SerieDTO[] }).data)
         ) {
-          seriesData = (res as { data: Serie[] }).data;
+          seriesData = (res as { data: SerieDTO[] }).data;
         }
         setSeries(seriesData);
       } catch (error) {
