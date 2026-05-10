@@ -1,6 +1,5 @@
-import { Serie } from "@/core/domain/entities/serie";
-import { InMemorySeriesRepository } from "@/core/domain/repositories/in-memory/in-memory-series-repository";
 import { FetchSeriesUseCase } from "@/core/domain/use-cases/fetch-series";
+import { InMemorySeriesRepository } from "@tests/repositories/in-memory-series-repository";
 import { beforeEach, describe, expect, it } from "vitest";
 
 describe("Fetch series use case", () => {

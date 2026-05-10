@@ -1,6 +1,7 @@
 import { Playlist } from "@/core/domain/entities/playlist";
-import { InMemoryPlaylistRepository } from "@/core/domain/repositories/in-memory/in-memory-playlist-repository";
 import { FetchActivePlaylistsUseCase } from "@/core/domain/use-cases/playlist/fetch-active-playlists";
+import { makePlaylist } from "@tests/factories/make-playlist";
+import { InMemoryPlaylistRepository } from "@tests/repositories/in-memory-playlist-repository";
 import { beforeEach, describe, expect, it } from "vitest";
 
 describe("Get active playlist use case", () => {
@@ -12,23 +13,19 @@ describe("Get active playlist use case", () => {
     sut = new FetchActivePlaylistsUseCase(repository);
   });
 
-  it("should be able to get the active playlist", () => {
-    const playlist = Playlist.create({
-      name: "Test Playlist",
-      credentials: { server: "http://test.com", username: "u", password: "p" },
-      isActive: true,
-    });
+  it("should be able to get the active playlist", async () => {
+    const { playlist } = makePlaylist({ isActive: true });
 
     repository.playlists.push(playlist);
 
-    const { playlists } = sut.execute();
+    const { playlists } = await sut.execute();
 
     expect(playlists[0]).toBeInstanceOf(Playlist);
     expect(playlists[0].isActive).toBe(true);
   });
 
-  it("should return empty array if there is no active playlist", () => {
-    const { playlists } = sut.execute();
+  it("should return empty array if there is no active playlist", async () => {
+    const { playlists } = await sut.execute();
 
     expect(playlists).toHaveLength(0);
   });

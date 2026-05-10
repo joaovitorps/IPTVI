@@ -1,39 +1,50 @@
-import { Credentials } from "@/core/domain/entities/object-values/credentials";
-import { Playlist } from "@/core/domain/entities/playlist";
-import { InMemoryPlaylistRepository } from "@/core/domain/repositories/in-memory/in-memory-playlist-repository";
+import { DuplicateUsernameError } from "@/core/domain/use-cases/error/duplicate-username-error";
 import { CreatePlaylistUseCase } from "@/core/domain/use-cases/playlist/create-playlist";
+import { makePlaylist } from "@tests/factories/make-playlist";
+import { InMemoryPlaylistRepository } from "@tests/repositories/in-memory-playlist-repository";
 
 describe("Create playlist use case", () => {
-  let repository: InMemoryPlaylistRepository;
+  let playlistRepo: InMemoryPlaylistRepository;
   let sut: CreatePlaylistUseCase;
 
   beforeEach(() => {
-    repository = new InMemoryPlaylistRepository();
-    sut = new CreatePlaylistUseCase(repository);
+    playlistRepo = new InMemoryPlaylistRepository();
+    sut = new CreatePlaylistUseCase(playlistRepo);
   });
 
-  it("should be able to create a new playlist", () => {
-    const { playlist } = sut.execute({
-      name: "Test Playlist",
-      credentials: Credentials.create("http://test.com", "u", "p"),
-    });
+  it("should be able to create a new playlist", async () => {
+    sut = new CreatePlaylistUseCase(playlistRepo);
 
-    expect(repository.playlists).toHaveLength(1);
-    expect(repository.playlists[0]).toBe(playlist);
+    const data = {
+      name: "Test",
+      server: "https://test.com",
+      username: "u",
+      password: "p",
+    };
+
+    const { playlist } = await sut.execute(data);
+
+    expect(playlistRepo.playlists).toHaveLength(1);
+    expect(playlistRepo.playlists[0]).toMatchObject(data);
     expect(playlist.isActive).toBe(false);
   });
 
-  it("should not create a new playlist if username already exists", () => {
-    const data = {
-      name: "Test Playlist",
-      credentials: Credentials.create("http://test.com", "username", "p"),
-    };
+  it("should not create a new playlist if username already exists", async () => {
+    const username = "username";
 
-    repository.create(
-      Playlist.create({ name: data.name, credentials: data.credentials }),
-    );
+    const { playlist } = makePlaylist({ username });
 
-    expect(() => sut.execute(data)).toThrow("User already exists!");
-    expect(repository.playlists).toHaveLength(1);
+    playlistRepo.create(playlist);
+
+    await expect(() =>
+      sut.execute({
+        name: playlist.name,
+        server: playlist.server,
+        username,
+        password: playlist.password,
+      }),
+    ).rejects.toThrow(DuplicateUsernameError);
+
+    expect(playlistRepo.playlists).toHaveLength(1);
   });
 });

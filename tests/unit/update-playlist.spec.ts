@@ -1,6 +1,6 @@
-import { Playlist } from "@/core/domain/entities/playlist";
-import { InMemoryPlaylistRepository } from "@/core/domain/repositories/in-memory/in-memory-playlist-repository";
 import { UpdatePlaylistUseCase } from "@/core/domain/use-cases/playlist/update-playlist";
+import { makePlaylist } from "@tests/factories/make-playlist";
+import { InMemoryPlaylistRepository } from "@tests/repositories/in-memory-playlist-repository";
 import { beforeEach, describe, expect, it } from "vitest";
 
 describe("Update playlist use case", () => {
@@ -12,28 +12,24 @@ describe("Update playlist use case", () => {
     sut = new UpdatePlaylistUseCase(repository);
   });
 
-  it("should be able to update a playlist", () => {
-    const playlist = Playlist.create(
-      {
-        name: "Old Name",
-        credentials: {
-          server: "http://test.com",
-          username: "u",
-          password: "p",
-        },
-      },
-      "1",
-    );
+  it("should be able to update a playlist", async () => {
+    const { playlist } = makePlaylist();
 
     repository.playlists.push(playlist);
 
-    const updatedPlaylist = Playlist.create({
-      ...playlist.toJSON(),
-      name: "New Name",
-    });
-
-    sut.execute({ id: "1", playlist: updatedPlaylist });
+    await sut.execute({ playlistId: playlist.id, name: "New Name" });
 
     expect(repository.playlists[0].name).toBe("New Name");
+    expect(repository.playlists[0].id).toBe(playlist.id);
+  });
+
+  it("should update the name to 'Unnamed Profile' if receive a empty string", async () => {
+    const { playlist } = makePlaylist({ name: "" });
+
+    repository.playlists.push(playlist);
+
+    await sut.execute({ playlistId: playlist.id, name: "" });
+
+    expect(repository.playlists[0].name).toEqual("Unnamed Profile");
   });
 });

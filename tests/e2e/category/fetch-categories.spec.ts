@@ -10,7 +10,7 @@ describe("Fetch categories e2e", () => {
     mock = new AxiosMockAdapter(axios);
   });
 
-  beforeEach(() => {
+  afterEach(() => {
     mock.reset();
   });
 
@@ -28,7 +28,7 @@ describe("Fetch categories e2e", () => {
     repository = new APICategoryRepository("server", "username", "pass");
     sut = new FetchCategoryUseCase(repository);
 
-    const { categories } = await sut.execute({});
+    const { categories } = await sut.execute();
 
     expect(categories).toHaveLength(2);
     expect(categories[0].name).toEqual("test");

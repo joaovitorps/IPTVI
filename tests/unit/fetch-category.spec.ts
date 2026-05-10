@@ -1,20 +1,22 @@
-import { Category } from "@/core/domain/entities/category";
-import { InMemoryCategoryRepository } from "@/core/domain/repositories/in-memory/in-memory-category-repository";
 import { FetchCategoryUseCase } from "@/core/domain/use-cases/category/fetch-category";
-
-let sut: FetchCategoryUseCase;
-let repository: InMemoryCategoryRepository;
+import { makeCategory } from "@tests/factories/make-category";
+import { InMemoryCategoryRepository } from "@tests/repositories/in-memory-category-repository";
 
 describe("Fetch categories use case", () => {
-  it("should be able to fetch the categories", async () => {
+  let sut: FetchCategoryUseCase;
+  let repository: InMemoryCategoryRepository;
+
+  beforeEach(() => {
     repository = new InMemoryCategoryRepository();
     sut = new FetchCategoryUseCase(repository);
-    repository.categories.push(
-      Category.create({ name: "test", parentId: 1 }, "1"),
-    );
+  });
+
+  it("should be able to fetch the categories", async () => {
+    const { category } = makeCategory();
+    repository.categories.push(category);
 
     const { categories } = await sut.execute();
 
-    expect(categories[0].name).toEqual("test");
+    expect(categories[0].name).toEqual(category.name);
   });
 });

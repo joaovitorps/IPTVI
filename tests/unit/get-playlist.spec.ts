@@ -1,6 +1,8 @@
 import { Playlist } from "@/core/domain/entities/playlist";
-import { InMemoryPlaylistRepository } from "@/core/domain/repositories/in-memory/in-memory-playlist-repository";
+import { EntityNotFoundError } from "@/core/domain/use-cases/error/entity-not-found-error";
 import { GetPlaylistUseCase } from "@/core/domain/use-cases/playlist/get-playlist";
+import { makePlaylist } from "@tests/factories/make-playlist";
+import { InMemoryPlaylistRepository } from "@tests/repositories/in-memory-playlist-repository";
 import { beforeEach, describe, expect, it } from "vitest";
 
 describe("Get playlist use case", () => {
@@ -13,28 +15,19 @@ describe("Get playlist use case", () => {
   });
 
   it("should be able to get a playlist by id", () => {
-    const playlist = Playlist.create(
-      {
-        name: "Test Playlist",
-        credentials: {
-          server: "http://test.com",
-          username: "u",
-          password: "p",
-        },
-      },
-      "1",
-    );
+    const make = makePlaylist({}, "1");
 
-    repository.playlists.push(playlist);
+    repository.playlists.push(make.playlist);
 
-    const { playlist: result } = sut.execute({ id: "1" });
+    const { playlist } = sut.execute({ id: "1" });
 
-    expect(result).toBeInstanceOf(Playlist);
-    expect(result?.id).toBe("1");
+    expect(playlist).toBeInstanceOf(Playlist);
+    expect(playlist.id).toBe("1");
   });
 
-  it("should return null if playlist is not found", () => {
-    const { playlist: result } = sut.execute({ id: "non-existent-id" });
-    expect(result).toBeNull();
+  it("should throw an error if a playlist is not found", () => {
+    expect(() => sut.execute({ id: "non-existent-id" })).toThrow(
+      EntityNotFoundError,
+    );
   });
 });
