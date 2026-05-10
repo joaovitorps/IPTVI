@@ -1,17 +1,29 @@
 {
-  "files": [
-    "eslint.config.ts",
-    "forge.config.ts",
-    "vite.main.config.ts",
-    "vite.preload.config.ts",
-    "vite.renderer.config.ts",
-    "vite.shared.ts",
-    "vitest.config.ts"
-  ],
-  "references": [
-    { "path": "./src/main" },
-    { "path": "./src/preload" },
-    { "path": "./src/renderer" },
-    { "path": "./tests" }
-  ]
+  "compilerOptions": {
+    "target": "ESNext",
+    "noImplicitAny": true,
+    "sourceMap": true,
+    "outDir": "dist",
+    "declaration": true,
+    "emitDeclarationOnly": true,
+    "module": "ESNext",
+    "strict": true,
+    "skipLibCheck": true,
+    "moduleResolution": "bundler",
+    "jsx": "react-jsx",
+    "lib": ["DOM", "ESNext"],
+    "types": ["node", "vitest/globals"],
+    "allowSyntheticDefaultImports": true,
+    "rootDir": "./",
+
+    "baseUrl": "./",
+    "paths": {
+      "@/*": ["./src/*"],
+      "@main/*": ["./src/main/*"],
+      "@preload/*": ["./src/preload/*"],
+      "@renderer/*": ["./src/renderer/*"],
+      "@tests/*": ["./tests/*"]
+    }
+  },
+  "exclude": ["node_modules", ".vite", "dist"]
 }
