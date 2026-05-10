@@ -1,5 +1,10 @@
 import { CredentialRepository } from "../repositories/credential-repository";
 
+interface ValidateCredentialsUseCaseParams {
+  server: string;
+  username: string;
+  password: string;
+}
 interface ValidateCredentialsUseCaseReturn {
   isValid: boolean;
   error?: string;
@@ -8,8 +13,16 @@ interface ValidateCredentialsUseCaseReturn {
 export class ValidateCredentialsUseCase {
   constructor(private readonly credentialsRepository: CredentialRepository) {}
 
-  async execute(): Promise<ValidateCredentialsUseCaseReturn> {
-    const response = await this.credentialsRepository.validate();
+  async execute({
+    server,
+    username,
+    password,
+  }: ValidateCredentialsUseCaseParams): Promise<ValidateCredentialsUseCaseReturn> {
+    const response = await this.credentialsRepository.validate({
+      server,
+      username,
+      password,
+    });
 
     if (!response.ok) {
       return {

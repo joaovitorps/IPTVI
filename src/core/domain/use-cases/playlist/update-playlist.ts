@@ -1,9 +1,13 @@
 import { Playlist } from "../../entities/playlist";
 import { PlaylistRepository } from "../../repositories/playlist-repository";
+import { EntityNotFoundError } from "../error/entity-not-found-error";
 
 interface UpdatePlaylistUseCaseParams {
   playlistId: string;
-  data: Partial<Pick<Playlist, "name" | "credentials" | "isActive">>;
+  name?: string;
+  server?: string;
+  username?: string;
+  password?: string;
 }
 
 interface UpdatePlaylistUseCaseReturn {
@@ -12,29 +16,26 @@ interface UpdatePlaylistUseCaseReturn {
 export class UpdatePlaylistUseCase {
   constructor(private readonly playlistRepository: PlaylistRepository) {}
 
-  execute({
+  async execute({
     playlistId,
-    data,
-  }: UpdatePlaylistUseCaseParams): UpdatePlaylistUseCaseReturn | false {
+    name,
+    server,
+    username,
+    password,
+  }: UpdatePlaylistUseCaseParams): Promise<UpdatePlaylistUseCaseReturn> {
     const playlist = this.playlistRepository.getById(playlistId);
 
     if (!playlist) {
-      throw new Error("Not found");
+      throw new EntityNotFoundError();
     }
 
-    const playlistUpdated = this.playlistRepository.update(
-      playlistId,
-      Playlist.create({
-        name: data.name ?? playlist.name,
-        credentials: data.credentials ?? playlist.credentials,
-        isActive: data.isActive ?? playlist.isActive,
-      }),
-    );
+    playlist.name = name ?? playlist.name;
+    playlist.server = server ?? playlist.server;
+    playlist.username = username ?? playlist.username;
+    playlist.password = password ?? playlist.password;
 
-    if (!playlistUpdated) {
-      return false;
-    }
+    await this.playlistRepository.save(playlist);
 
-    return { playlist: playlistUpdated };
+    return { playlist };
   }
 }

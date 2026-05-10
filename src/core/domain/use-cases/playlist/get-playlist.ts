@@ -1,12 +1,13 @@
 import { Playlist } from "../../entities/playlist";
 import { PlaylistRepository } from "../../repositories/playlist-repository";
+import { EntityNotFoundError } from "../error/entity-not-found-error";
 
 export interface GetPlaylistUseCaseParams {
   id: string;
 }
 
 export interface GetPlaylistUseCaseReturn {
-  playlist: Playlist | null;
+  playlist: Playlist;
 }
 
 export class GetPlaylistUseCase {
@@ -14,6 +15,10 @@ export class GetPlaylistUseCase {
 
   execute({ id }: GetPlaylistUseCaseParams): GetPlaylistUseCaseReturn {
     const playlist = this.playlistRepository.getById(id);
+
+    if (!playlist) {
+      throw new EntityNotFoundError();
+    }
 
     return { playlist };
   }

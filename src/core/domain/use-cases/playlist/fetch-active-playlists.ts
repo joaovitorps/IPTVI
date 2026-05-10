@@ -8,8 +8,8 @@ export interface FetchActivePlaylistsUseCaseReturn {
 export class FetchActivePlaylistsUseCase {
   constructor(private readonly playlistRepository: PlaylistRepository) {}
 
-  execute(): FetchActivePlaylistsUseCaseReturn {
-    const playlists = this.playlistRepository.fetchActives();
+  async execute(): Promise<FetchActivePlaylistsUseCaseReturn> {
+    const playlists = await this.playlistRepository.fetchActives();
 
     return { playlists };
   }
