@@ -5,7 +5,7 @@ import { Serie } from "./serie";
 
 export interface SerieInfoProps {
   seasons: ReturnType<typeof Season.create>[];
-  info: ReturnType<typeof Serie.create>;
+  info: Serie;
   episodes: Record<number, ReturnType<typeof Episode.create>[]>;
 }
 

@@ -1,3 +1,5 @@
+import { CategoryDTO } from "@/shared/types/dto";
+
 import { Entity } from "../entity";
 
 export interface CategoryProps {
@@ -18,7 +20,7 @@ export class Category extends Entity<CategoryProps> {
     return this.props.parentId;
   }
 
-  public toJSON() {
+  public toJSON(): CategoryDTO {
     return {
       id: this.id,
       ...this.props,

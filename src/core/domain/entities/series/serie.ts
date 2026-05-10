@@ -1,3 +1,5 @@
+import { SerieDTO } from "@/shared/types/dto";
+
 import { Entity } from "../entity";
 
 export interface SeriesProps {
@@ -20,7 +22,7 @@ export interface SeriesProps {
 
 export class Serie extends Entity<SeriesProps> {
   static create(props: SeriesProps, id?: string) {
-    return new Serie(props, id).toJSON();
+    return new Serie(props, id);
   }
 
   get num(): number | undefined {
@@ -83,7 +85,7 @@ export class Serie extends Entity<SeriesProps> {
     return this.props.categoryId;
   }
 
-  public toJSON() {
+  public toJSON(): SerieDTO {
     return {
       id: this.id,
       ...this.props,
