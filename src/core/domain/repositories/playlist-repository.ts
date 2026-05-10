@@ -4,8 +4,8 @@ export interface PlaylistRepository {
   getById(id: string): Playlist | null;
   getByUsername(username: string): Playlist | null;
   fetchAll(): Playlist[];
-  fetchActives(): Playlist[];
+  fetchActives(): Promise<Playlist[]>;
   create(playlist: Playlist): Playlist;
-  update(id: string, data: Playlist): Playlist | false;
+  save(playlist: Playlist): Promise<void>;
   delete(playlistId: string): void;
 }

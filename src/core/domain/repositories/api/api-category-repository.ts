@@ -1,39 +1,47 @@
 import { axiosInstance } from "@/shared/axios";
-import { SeriesCategories } from "@/shared/schemas";
+import z from "zod";
 
-import { Credentials } from "../../entities/object-values/credentials";
 import { Category } from "../../entities/series/category";
 import { CategoryRepository } from "../category-repository";
 
+const CategoriesSchema = z.array(
+  z.object({
+    category_id: z.string(),
+    category_name: z.string(),
+    parent_id: z.coerce.number(),
+  }),
+);
+
 export class APICategoryRepository implements CategoryRepository {
-  constructor(private readonly credentials: Credentials) {}
+  constructor(
+    private readonly server: string,
+    private readonly username: string,
+    private readonly password: string,
+  ) {}
 
   async fetchCategory() {
-    const { server, username, password } = this.credentials;
-
     try {
-      const response = await axiosInstance(server, {
-        username,
-        password,
+      const response = await axiosInstance(this.server, {
+        username: this.username,
+        password: this.password,
         action: "get_series_categories",
       }).get("/player_api.php");
 
-      const parsed = SeriesCategories.safeParse(response.data);
+      const parsed = CategoriesSchema.safeParse(response.data);
 
       if (!parsed.success) {
         console.error(parsed.error);
         return [];
       }
 
-      return parsed.data.map((item) =>
+      const categories: Category[] = parsed.data.map((category) =>
         Category.create(
-          {
-            name: item.category_name,
-            parentId: item.parent_id,
-          },
-          item.category_id,
+          { name: category.category_name, parentId: category.parent_id },
+          category.category_id,
         ),
       );
+
+      return categories;
     } catch (error) {
       console.error(error);
       return [];

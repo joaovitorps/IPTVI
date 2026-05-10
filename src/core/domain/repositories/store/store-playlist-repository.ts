@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/require-await */
 import { store } from "../../../../shared/store";
 import { Playlist } from "../../entities/playlist";
 import { PlaylistRepository } from "../playlist-repository";
@@ -9,7 +10,7 @@ export class StorePlaylistRepository implements PlaylistRepository {
     return this.playlists;
   }
 
-  fetchActives(): Playlist[] {
+  async fetchActives() {
     const playlists = this.playlists.filter((p) => p.isActive === true);
 
     return playlists;
@@ -19,7 +20,7 @@ export class StorePlaylistRepository implements PlaylistRepository {
     if (this.playlists.length === 0) return null;
 
     const playlistWithUsername = this.playlists.find(
-      (playlist) => playlist.credentials.username === username,
+      (playlist) => playlist.username === username,
     );
 
     if (!playlistWithUsername) {
@@ -43,23 +44,21 @@ export class StorePlaylistRepository implements PlaylistRepository {
     return playlist;
   }
 
-  update(id: string, data: Playlist): Playlist | false {
-    const index = this.playlists.findIndex((playlist) => playlist.id === id);
-
-    if (index === -1) {
-      return false;
-    }
-
-    this.playlists[index] = data;
-
-    store.set(
-      "playlists",
-      this.playlists.map((playlist) =>
-        playlist instanceof Playlist ? playlist.toJSON() : playlist,
-      ),
+  async save(playlist: Playlist) {
+    const index = this.playlists.findIndex(
+      (playlist) => playlist.id === playlist.id,
     );
 
-    return data;
+    if (index !== -1) {
+      this.playlists[index] = playlist;
+
+      store.set(
+        "playlists",
+        this.playlists.map((playlist) =>
+          playlist instanceof Playlist ? playlist.toJSON() : playlist,
+        ),
+      );
+    }
   }
 
   delete(playlistId: string) {

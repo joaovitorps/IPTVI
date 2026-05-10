@@ -1,16 +1,14 @@
 import { UserDataResponse } from "@/main/api/requests";
 import { axiosInstance } from "@/shared/axios";
 import { AccountInfo } from "@/shared/schemas";
+import { Credentials } from "@/shared/types";
 import { default as axios } from "axios";
 
-import { Credentials } from "../../entities/object-values/credentials";
 import { CredentialRepository } from "../credential-repository";
 
 export class APICredentialRepository implements CredentialRepository {
-  constructor(private readonly credentials: Credentials) {}
-
-  async validate(): Promise<UserDataResponse> {
-    const { server, username, password } = this.credentials;
+  async validate(credentials: Credentials): Promise<UserDataResponse> {
+    const { server, username, password } = credentials;
 
     try {
       const response = await axiosInstance(server, {
@@ -21,7 +19,7 @@ export class APICredentialRepository implements CredentialRepository {
       const parsed = AccountInfo.safeParse(response.data);
 
       if (!parsed.success) {
-        console.error(parsed.error);
+        // console.error(parsed.error);
         return {
           ok: false,
           status: 503,

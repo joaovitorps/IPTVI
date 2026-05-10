@@ -4,8 +4,6 @@ import {
   Series as SeriesSchema,
 } from "@/shared/schemas";
 
-import { Episode } from "../../entities/episode";
-import { Credentials } from "../../entities/object-values/credentials";
 import { Season } from "../../entities/series/season";
 import { Serie } from "../../entities/series/serie";
 import { SerieInfo } from "../../entities/series/serie-info";
@@ -15,8 +13,6 @@ export class APISeriesRepository implements SeriesRepository {
   constructor(private readonly credentials: Credentials) {}
 
   async fetchByCategory(categoryId: number) {
-    const { server, username, password } = this.credentials;
-
     try {
       const response = await axiosInstance(server, {
         username,
@@ -71,12 +67,12 @@ export class APISeriesRepository implements SeriesRepository {
         series_id: serieId,
       }).get("/player_api.php");
 
-      // const parsed = SerieInfoSchema.safeParse(response.data);
+      const parsed = SerieInfoSchema.safeParse(response.data);
 
-      // if (!parsed.success) {
-      //   console.error(parsed.error);
-      //   throw new Error("Failed to parse serie info");
-      // }
+      if (!parsed.success) {
+        console.error(parsed.error);
+        throw new Error("Failed to parse serie info");
+      }
 
       const { seasons, info, episodes } = response.data;
 
