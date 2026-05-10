@@ -30,14 +30,6 @@ export const AccountInfo = z.object({
   server_info: ServerInfo,
 });
 
-const SeriesCategory = z.object({
-  category_id: z.string(),
-  category_name: z.string(),
-  parent_id: z.coerce.number(),
-});
-
-export const SeriesCategories = z.array(SeriesCategory);
-
 const Serie = z.object({
   num: z.coerce.number().optional(),
   name: z.string(),
@@ -202,7 +194,6 @@ export const SerieInfo = z.object({
 });
 
 export type AccountInfo = z.infer<typeof AccountInfo>;
-export type SeriesCategory = z.infer<typeof SeriesCategory>;
 export type Serie = z.infer<typeof Serie>;
 export type Series = z.infer<typeof Series>;
 export type Season = z.infer<typeof Season>;

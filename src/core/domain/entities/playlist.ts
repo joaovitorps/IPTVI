@@ -1,11 +1,12 @@
 import { Optional } from "@/@types/optional";
 
 import { Entity } from "./entity";
-import { Credentials } from "./object-values/credentials";
 
 interface PlaylistProps {
   name: string;
-  credentials: Credentials;
+  server: string;
+  username: string;
+  password: string;
   isActive: boolean;
   createdAt: Date;
   updatedAt?: Date;
@@ -31,8 +32,16 @@ export class Playlist extends Entity<PlaylistProps> {
     return this.props.name;
   }
 
-  get credentials() {
-    return this.props.credentials;
+  get server() {
+    return this.props.server;
+  }
+
+  get username() {
+    return this.props.username;
+  }
+
+  get password() {
+    return this.props.password;
   }
 
   get isActive() {
@@ -48,14 +57,22 @@ export class Playlist extends Entity<PlaylistProps> {
   }
 
   set name(value: string) {
-    console.log("object", value);
     this.props.name = Playlist.validatePlaylistName(value);
-    console.log("object2", this.props.name);
     this.touch();
   }
 
-  set credentials(credentials: Credentials) {
-    this.props.credentials = credentials;
+  set server(value: string) {
+    this.props.server = value;
+    this.touch();
+  }
+
+  set username(value: string) {
+    this.props.username = value;
+    this.touch();
+  }
+
+  set password(value: string) {
+    this.props.password = value;
     this.touch();
   }
 

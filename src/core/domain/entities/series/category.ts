@@ -7,7 +7,7 @@ export interface CategoryProps {
 
 export class Category extends Entity<CategoryProps> {
   static create(props: CategoryProps, id?: string) {
-    return new Category(props, id).toJSON();
+    return new Category(props, id);
   }
 
   get name(): string {

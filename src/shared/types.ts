@@ -1,8 +1,8 @@
-import { Credentials } from "@/core/domain/entities/object-values/credentials";
 import { Playlist } from "@/core/domain/entities/playlist";
 import { Category } from "@/core/domain/entities/series/category";
 
 import { Serie, SerieInfo } from "./schemas";
+import { ValidateParams, ValidateReturn } from "./types/ipc";
 
 export interface StreamTrack {
   index: number;
@@ -26,28 +26,47 @@ export interface RemuxProgress {
 
 export interface CreatePlaylist {
   name: string;
-  credentials: Credentials;
+  server: string;
+  username: string;
+  password: string;
+}
+export interface FetchPlaylistsReturn {
+  playlists: Playlist[];
+}
+
+export interface Credentials {
+  server: string;
+  username: string;
+  password: string;
 }
 
 export interface UpdatePlaylist {
   playlistId: string;
-  data: Partial<Pick<Playlist, "name" | "credentials" | "isActive">>;
+  data: Partial<
+    Pick<Playlist, "name" | "server" | "username" | "password" | "isActive">
+  >;
 }
 
 declare global {
   interface Window {
     api: {
-      getSeriesCategories: () => Promise<Category[]>;
       getSeriesCategory: (categoryId: number) => Promise<Serie[]>;
       getSerieInfo: (serieId: number) => Promise<SerieInfo>;
       playlist: {
-        validate: (
-          credentials: Credentials,
-        ) => Promise<{ isValid: true } | { isValid: false; error: string }>;
+        activate: (playlistId: string) => Promise<void>;
+        validate: (params: ValidateParams) => Promise<ValidateReturn>;
         fetch: () => Promise<Playlist[]>;
-        create: ({ name, credentials }: CreatePlaylist) => Promise<Playlist>;
+        create: ({
+          name,
+          server,
+          username,
+          password,
+        }: CreatePlaylist) => Promise<Playlist>;
         update: ({ playlistId, data }: UpdatePlaylist) => Playlist | false;
         delete: (playlistId: string) => Promise<void>;
+      };
+      category: {
+        fetch: () => Promise<Category[]>;
       };
     };
   }
