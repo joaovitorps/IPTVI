@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 
 import { categoryIpcHandlers } from "./category-ipc";
 import { playlistIpcHandlers } from "./playlist-ipc";
+import { serieIpcHandlers } from "./serie-ipc";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -54,6 +55,7 @@ app.on("ready", () => {
 
   playlistIpcHandlers(ipcMain);
   categoryIpcHandlers(ipcMain);
+  serieIpcHandlers(ipcMain);
 
   // ipcMain.handle("get-series-category", (_event, categoryId: number) => {
   //   return fetchSeries(categoryId);

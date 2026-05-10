@@ -10,4 +10,8 @@ export const IPC = {
   CATEGORY: {
     FETCH: "category:fetch",
   },
+  SERIE: {
+    GET_BY_ID: "serie:get-by-id",
+    FETCH_BY_CATEGORY_ID: "serie:fetch-by-category-id",
+  },
 };

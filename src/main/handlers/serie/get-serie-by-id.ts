@@ -1,7 +1,7 @@
 import { APISeriesRepository } from "@/core/domain/repositories/api/api-series-repository";
 import { StorePlaylistRepository } from "@/core/domain/repositories/store/store-playlist-repository";
 import { FetchActivePlaylistsUseCase } from "@/core/domain/use-cases/playlist/fetch-active-playlists";
-import { FetchSeriesUseCase } from "@/core/domain/use-cases/series/fetch-series";
+import { FetchSeriesUseCase } from "@/core/domain/use-cases/series/fetch-series-by-category";
 
 export const fetchSeries = async (categoryId: number) => {
   const fetchActivePlaylists = new FetchActivePlaylistsUseCase(

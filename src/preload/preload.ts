@@ -4,8 +4,8 @@ import {
   FetchPlaylistsReturn,
   UpdatePlaylist,
 } from "@/shared/types";
+import { CategoryDTO, SerieDTO } from "@/shared/types/dto";
 import {
-  CategoryDTO,
   CreatePlaylistParams,
   ValidateParams,
   ValidateReturn,
@@ -44,15 +44,19 @@ const api = {
       return ipcRenderer.invoke(IPC.CATEGORY.FETCH);
     },
   },
+  serie: {
+    getById(serieId: number): Promise<SerieDTO> {
+      return ipcRenderer.invoke(IPC.SERIE.GET_BY_ID, serieId);
+    },
+    fetchByCategoryId(categoryId: number): Promise<SerieDTO[]> {
+      return ipcRenderer.invoke(IPC.SERIE.FETCH_BY_CATEGORY_ID, categoryId);
+    },
+  },
 };
 
 contextBridge.exposeInMainWorld(
   "api",
   api,
-  // {
-  // getSeriesCategories: () => ipcRenderer.invoke("get-series-categories"),
-  // getSeriesCategory: (category_id: number) =>
-  //   ipcRenderer.invoke("get-series-category", category_id),
   // getSerieInfo: (serie_id: number) =>
   //   ipcRenderer.invoke("get-serie-info", serie_id),
 );
