@@ -1,22 +1,21 @@
 import { axiosInstance } from "@/shared/axios";
-import {
-  SerieInfo as SerieInfoSchema,
-  Series as SeriesSchema,
-} from "@/shared/schemas";
+import { Series as SeriesSchema } from "@/shared/schemas";
 
-import { Season } from "../../entities/series/season";
 import { Serie } from "../../entities/series/serie";
-import { SerieInfo } from "../../entities/series/serie-info";
 import { SeriesRepository } from "../series-repository";
 
 export class APISeriesRepository implements SeriesRepository {
-  constructor(private readonly credentials: Credentials) {}
+  constructor(
+    private readonly server: string,
+    private readonly username: string,
+    private readonly password: string,
+  ) {}
 
-  async fetchByCategory(categoryId: number) {
+  async fetchByCategoryId(categoryId: number) {
     try {
-      const response = await axiosInstance(server, {
-        username,
-        password,
+      const response = await axiosInstance(this.server, {
+        username: this.username,
+        password: this.password,
         action: "get_series",
         category_id: categoryId,
       }).get("/player_api.php");
@@ -28,7 +27,7 @@ export class APISeriesRepository implements SeriesRepository {
         return [];
       }
 
-      return parsed.data.map((item) =>
+      const series: Serie[] = parsed.data.map((item) =>
         Serie.create(
           {
             num: item.num,
@@ -50,32 +49,28 @@ export class APISeriesRepository implements SeriesRepository {
           item?.series_id,
         ),
       );
+
+      return series;
     } catch (error) {
       console.error(error);
       return [];
     }
   }
 
-  async fetchSerieInfo(serieId: number) {
-    const { server, username, password } = this.credentials;
-
+  async getById(serieId: number): Promise<Serie> {
     try {
-      const response = await axiosInstance(server, {
-        username,
-        password,
+      const response = await axiosInstance(this.server, {
+        username: this.username,
+        password: this.password,
         action: "get_series_info",
         series_id: serieId,
       }).get("/player_api.php");
-
       const parsed = SerieInfoSchema.safeParse(response.data);
-
       if (!parsed.success) {
         console.error(parsed.error);
         throw new Error("Failed to parse serie info");
       }
-
       const { seasons, info, episodes } = response.data;
-
       const mappedSeasons = seasons.map((season) =>
         Season.create(
           {
@@ -91,7 +86,6 @@ export class APISeriesRepository implements SeriesRepository {
           season.id.toString(),
         ),
       );
-
       const mappedInfo = Serie.create(
         {
           num: info.num,
@@ -112,12 +106,10 @@ export class APISeriesRepository implements SeriesRepository {
         },
         info.series_id,
       );
-
       const mappedEpisodes: Record<
         number,
         ReturnType<typeof Episode.create>[]
       > = {};
-
       Object.entries(episodes).forEach(([seasonNum, seasonEpisodes]) => {
         mappedEpisodes[Number(seasonNum)] = seasonEpisodes.map((episode) =>
           Episode.create(
@@ -151,7 +143,6 @@ export class APISeriesRepository implements SeriesRepository {
           ),
         );
       });
-
       return SerieInfo.create({
         seasons: mappedSeasons,
         info: mappedInfo,
