@@ -1,4 +1,4 @@
-import { Category } from "@/core/domain/entities/category";
+import { Category } from "@/core/domain/entities/series/category";
 import { Search } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router";
@@ -13,7 +13,7 @@ export const Categories = () => {
     const getSeriesCategories = async () => {
       try {
         setIsLoading(true);
-        const res = await window.api.getSeriesCategories();
+        const res = await window.api.category.fetch();
 
         setCategories(res);
       } catch (error) {

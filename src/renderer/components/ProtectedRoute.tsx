@@ -27,9 +27,11 @@ export const ProtectedRoute = () => {
 
       // Validate credentials on startup as per plan
       try {
-        const result = await window.api.playlist.validate(
-          activePlaylist.credentials,
-        );
+        const result = await window.api.playlist.validate({
+          server: activePlaylist.server,
+          username: activePlaylist.username,
+          password: activePlaylist.password,
+        });
         if (result.isValid) {
           setIsAuthenticated(true);
         } else {

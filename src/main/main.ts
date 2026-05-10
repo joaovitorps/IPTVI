@@ -1,13 +1,10 @@
-import { StorePlaylistRepository } from "@/core/domain/repositories/store/store-playlist-repository";
-import { FetchActivePlaylistsUseCase } from "@/core/domain/use-cases/playlist/fetch-active-playlists";
 import { BrowserWindow, app, ipcMain } from "electron";
 import started from "electron-squirrel-startup";
-import { fork } from "node:child_process";
-import { watch } from "node:fs";
 import path, { dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { registerMainIpc } from "./ipc/register-main-ipc";
+import { categoryIpcHandlers } from "./category-ipc";
+import { playlistIpcHandlers } from "./playlist-ipc";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -55,30 +52,39 @@ app.on("ready", () => {
   //   });
   // });
 
-  registerMainIpc(ipcMain);
+  playlistIpcHandlers(ipcMain);
+  categoryIpcHandlers(ipcMain);
 
-  const child = fork(path.join(__dirname, "streamParser.js"));
+  // ipcMain.handle("get-series-category", (_event, categoryId: number) => {
+  //   return fetchSeries(categoryId);
+  // });
 
-  child.on("message", (message) => {
-    console.log(message, "from child");
-  });
+  // ipcMain.handle("get-serie-info", (_event, serieId: number) => {
+  //   return fetchSerieInfo(serieId);
+  // });
 
-  child.on("exit", (code) => {
-    console.log("child exited with code", code);
-  });
+  // const child = fork(path.join(__dirname, "streamParser.js"));
 
-  watch("./", (eventType, filename) => {
-    console.log(`Event Name: ${eventType}`);
-    console.log(`File Triggered: ${filename}`);
-  });
+  // child.on("message", (message) => {
+  //   console.log(message, "from child");
+  // });
 
-  const fetchActivePlaylists = new FetchActivePlaylistsUseCase(
-    new StorePlaylistRepository(),
-  );
+  // child.on("exit", (code) => {
+  //   console.log("child exited with code", code);
+  // });
 
-  const { playlists } = fetchActivePlaylists.execute();
+  // watch("./", (eventType, filename) => {
+  //   console.log(`Event Name: ${eventType}`);
+  //   console.log(`File Triggered: ${filename}`);
+  // });
 
-  child.send(playlists[0].credentials);
+  // const fetchActivePlaylists = new FetchActivePlaylistsUseCase(
+  //   new StorePlaylistRepository(),
+  // );
+
+  // const { playlists } = fetchActivePlaylists.execute();
+
+  // child.send(playlists[0].credentials);
 
   createWindow();
 });

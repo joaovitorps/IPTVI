@@ -1,11 +1,20 @@
 import { StorePlaylistRepository } from "@/core/domain/repositories/store/store-playlist-repository";
 import { CreatePlaylistUseCase } from "@/core/domain/use-cases/playlist/create-playlist";
-import { CreatePlaylist } from "@/shared/types";
+import { CreatePlaylistParams } from "@/shared/types/ipc";
 
-export const createPlaylist = ({ name, credentials }: CreatePlaylist) => {
-  const { playlist } = new CreatePlaylistUseCase(
-    new StorePlaylistRepository(),
-  ).execute({ name, credentials, isActive: true });
+export const createPlaylist = async ({
+  name,
+  server,
+  username,
+  password,
+}: CreatePlaylistParams) => {
+  const useCase = new CreatePlaylistUseCase(new StorePlaylistRepository());
+  const { playlist } = await useCase.execute({
+    name,
+    server,
+    username,
+    password,
+  });
 
   return playlist;
 };

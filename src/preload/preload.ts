@@ -1,27 +1,58 @@
-import { Credentials } from "@/core/domain/entities/object-values/credentials";
-import { Playlist } from "@/core/domain/entities/playlist";
-import { CreatePlaylist } from "@/shared/types";
+import { IPC } from "@/shared/constants/ipc";
+import {
+  CreatePlaylist,
+  FetchPlaylistsReturn,
+  UpdatePlaylist,
+} from "@/shared/types";
+import {
+  CategoryDTO,
+  CreatePlaylistParams,
+  ValidateParams,
+  ValidateReturn,
+} from "@/shared/types/ipc";
 import { contextBridge, ipcRenderer } from "electron";
 
-contextBridge.exposeInMainWorld("api", {
-  getSeriesCategories: () => ipcRenderer.invoke("get-series-categories"),
-  getSeriesCategory: (category_id: number) =>
-    ipcRenderer.invoke("get-series-category", category_id),
-  getSerieInfo: (serie_id: number) =>
-    ipcRenderer.invoke("get-serie-info", serie_id),
+const api = {
   playlist: {
-    validate: (credentials: Credentials) =>
-      ipcRenderer.invoke("playlist:validate", credentials),
+    activate(playlistId: string): Promise<void> {
+      return ipcRenderer.invoke(IPC.PLAYLIST.ACTIVATE, playlistId);
+    },
 
-    fetch: () => ipcRenderer.invoke("playlist:fetch"),
+    validate(params: ValidateParams): Promise<ValidateReturn> {
+      return ipcRenderer.invoke(IPC.PLAYLIST.VALIDATE, params);
+    },
 
-    create: ({ name, credentials }: CreatePlaylist) =>
-      ipcRenderer.invoke("playlist:create", { name, credentials }),
+    create(params: CreatePlaylistParams): Promise<CreatePlaylist> {
+      return ipcRenderer.invoke(IPC.PLAYLIST.CREATE, params);
+    },
 
-    update: (playlistId: string, data: Playlist) =>
-      ipcRenderer.invoke("playlist:update", playlistId, data),
+    fetch(): Promise<FetchPlaylistsReturn> {
+      return ipcRenderer.invoke(IPC.PLAYLIST.FETCH);
+    },
 
-    delete: (playlistId: string) =>
-      ipcRenderer.invoke("playlist:delete", playlistId),
+    update(params: UpdatePlaylist) {
+      return ipcRenderer.invoke(IPC.PLAYLIST.UPDATE, params);
+    },
+
+    delete(playlistId: string) {
+      return ipcRenderer.invoke(IPC.PLAYLIST.DELETE, playlistId);
+    },
   },
-});
+
+  category: {
+    fetch(): Promise<CategoryDTO[]> {
+      return ipcRenderer.invoke(IPC.CATEGORY.FETCH);
+    },
+  },
+};
+
+contextBridge.exposeInMainWorld(
+  "api",
+  api,
+  // {
+  // getSeriesCategories: () => ipcRenderer.invoke("get-series-categories"),
+  // getSeriesCategory: (category_id: number) =>
+  //   ipcRenderer.invoke("get-series-category", category_id),
+  // getSerieInfo: (serie_id: number) =>
+  //   ipcRenderer.invoke("get-serie-info", serie_id),
+);

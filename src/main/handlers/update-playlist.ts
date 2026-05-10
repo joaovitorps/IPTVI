@@ -2,16 +2,16 @@ import { StorePlaylistRepository } from "@/core/domain/repositories/store/store-
 import { UpdatePlaylistUseCase } from "@/core/domain/use-cases/playlist/update-playlist";
 import { UpdatePlaylist } from "@/shared/types";
 
-export const updatePlaylist = ({ playlistId, data }: UpdatePlaylist) => {
+export const updatePlaylist = async ({ playlistId, data }: UpdatePlaylist) => {
   const updatePlaylist = new UpdatePlaylistUseCase(
     new StorePlaylistRepository(),
   );
 
-  const updated = updatePlaylist.execute({ playlistId, data });
+  const { playlist } = await updatePlaylist.execute({ playlistId, ...data });
 
-  if (!updated) {
+  if (!playlist) {
     return false;
   }
 
-  return updated.playlist;
+  return playlist;
 };

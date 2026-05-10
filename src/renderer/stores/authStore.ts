@@ -27,6 +27,7 @@ export const useAuthState = create<AuthState>()((set) => ({
     try {
       set({ loading: true });
       const playlists = await window.api.playlist.fetch();
+      console.log(playlists);
       set({ playlists: playlists || [], loading: false });
     } catch (error) {
       console.error("Failed to fetch playlists:", error);

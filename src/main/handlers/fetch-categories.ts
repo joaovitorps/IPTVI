@@ -1,22 +1,20 @@
 import { APICategoryRepository } from "@/core/domain/repositories/api/api-category-repository";
 import { StorePlaylistRepository } from "@/core/domain/repositories/store/store-playlist-repository";
 import { FetchCategoryUseCase } from "@/core/domain/use-cases/category/fetch-category";
-import { FetchActivePlaylistsUseCase } from "@/core/domain/use-cases/playlist/fetch-active-playlists";
+import { CategoryDTO } from "@/shared/types/ipc";
 
-export const fetchCategories = async () => {
-  const fetchActivePlaylists = new FetchActivePlaylistsUseCase(
-    new StorePlaylistRepository(),
-  );
-
-  const { playlists } = fetchActivePlaylists.execute();
+export const fetchCategories = async (): Promise<CategoryDTO[]> => {
+  const storeRepo = new StorePlaylistRepository();
+  const playlists = await storeRepo.fetchActives();
 
   if (playlists.length === 0) throw new Error("No active playlist");
 
+  const { server, username, password } = playlists[0];
   const fetchCategory = new FetchCategoryUseCase(
-    new APICategoryRepository(playlists[0].credentials),
+    new APICategoryRepository(server, username, password),
   );
 
   const { categories } = await fetchCategory.execute();
 
-  return categories;
+  return categories.map((category) => category.toJSON());
 };

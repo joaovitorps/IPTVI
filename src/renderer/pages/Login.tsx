@@ -1,4 +1,3 @@
-import { Credentials } from "@/core/domain/entities/object-values/credentials";
 import { Playlist } from "@/core/domain/entities/playlist";
 import {
   Edit2,
@@ -38,9 +37,9 @@ export const Login = () => {
 
   const handleSelectPlaylist = (playlist: Playlist) => {
     setFormValues({
-      server: playlist.credentials.server,
-      username: playlist.credentials.username,
-      password: playlist.credentials.password,
+      server: playlist.server,
+      username: playlist.username,
+      password: playlist.password,
       name: playlist.name,
     });
     setEditingPlaylistId(playlist.id);
@@ -69,16 +68,17 @@ export const Login = () => {
     const password = ((formData.get("password") as string) || "").trim();
     const name = ((formData.get("name") as string) || "").trim();
 
-    const credentials = new Credentials(server, username, password);
-
-    const credentialsValidation =
-      await window.api.playlist.validate(credentials);
+    const credentialsValidation = await window.api.playlist.validate({
+      server,
+      username,
+      password,
+    });
 
     if (credentialsValidation.isValid) {
       if (editingPlaylistId) {
         window.api.playlist.update({
           playlistId: editingPlaylistId,
-          data: { name, credentials },
+          data: { name, server, username, password },
         });
 
         await fetchPlaylists();
@@ -89,7 +89,9 @@ export const Login = () => {
         try {
           await window.api.playlist.create({
             name,
-            credentials,
+            server,
+            username,
+            password,
           });
 
           await fetchPlaylists();
@@ -134,8 +136,13 @@ export const Login = () => {
     }
   };
 
-  const handlePlayPlaylist = (e: React.MouseEvent) => {
+  const handlePlayPlaylist = async (
+    e: React.MouseEvent,
+    playlistId: string,
+  ) => {
     e.stopPropagation();
+
+    await window.api.playlist.activate(playlistId);
 
     redirect();
   };
@@ -178,12 +185,12 @@ export const Login = () => {
                     {playlist.name}
                   </span>
                   <span className="text-xs text-zinc-500 truncate max-w-37.5">
-                    {playlist.credentials.server}
+                    {playlist.server}
                   </span>
                 </div>
                 <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                   <button
-                    onClick={handlePlayPlaylist}
+                    onClick={(e) => void handlePlayPlaylist(e, playlist.id)}
                     className="p-2 text-zinc-400 hover:text-green-500"
                     title="Play"
                   >

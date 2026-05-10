@@ -2,7 +2,9 @@ import { StorePlaylistRepository } from "@/core/domain/repositories/store/store-
 import { DeletePlaylistUseCase } from "@/core/domain/use-cases/playlist/delete-playlist";
 
 export const deletePlaylist = (playlistId: string) => {
-  const deletePlaylist = new DeletePlaylistUseCase(new StorePlaylistRepository());
+  const deletePlaylist = new DeletePlaylistUseCase(
+    new StorePlaylistRepository(),
+  );
 
   deletePlaylist.execute({ playlistId });
 };
