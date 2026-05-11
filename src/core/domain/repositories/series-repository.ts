@@ -1,6 +1,6 @@
 import { Serie } from "../entities/series/serie";
 
 export interface SeriesRepository {
-  getById(serieId: number): Promise<Serie>;
+  getById(serieId: string): Promise<Serie | null>;
   fetchByCategoryId(categoryId: number): Promise<Serie[]>;
 }

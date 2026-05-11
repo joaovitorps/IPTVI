@@ -1,5 +1,3 @@
-import { SerieDTO } from "@/shared/types/dto";
-
 import { Serie } from "../../entities/series/serie";
 import { SeriesRepository } from "../../repositories/series-repository";
 

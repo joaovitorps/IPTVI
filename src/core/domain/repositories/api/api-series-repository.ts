@@ -1,6 +1,8 @@
 import { axiosInstance } from "@/shared/axios";
-import { Series as SeriesSchema } from "@/shared/schemas";
+import { SerieInfoSchema, SeriesSchema } from "@/shared/schemas";
 
+import { Episode } from "../../entities/series/episode";
+import { Season } from "../../entities/series/season";
 import { Serie } from "../../entities/series/serie";
 import { SeriesRepository } from "../series-repository";
 
@@ -11,7 +13,7 @@ export class APISeriesRepository implements SeriesRepository {
     private readonly password: string,
   ) {}
 
-  async fetchByCategoryId(categoryId: number) {
+  async fetchByCategoryId(categoryId: number): Promise<Serie[]> {
     try {
       const response = await axiosInstance(this.server, {
         username: this.username,
@@ -44,7 +46,8 @@ export class APISeriesRepository implements SeriesRepository {
             backdropPath: item.backdrop_path,
             youtubeTrailer: item.youtube_trailer,
             episodeRunTime: item.episode_run_time,
-            categoryId: item.category_id,
+            categoryId: Number(item.category_id),
+            seasons: [],
           },
           item?.series_id,
         ),
@@ -57,7 +60,7 @@ export class APISeriesRepository implements SeriesRepository {
     }
   }
 
-  async getById(serieId: number): Promise<Serie> {
+  async getById(serieId: string): Promise<Serie | null> {
     try {
       const response = await axiosInstance(this.server, {
         username: this.username,
@@ -65,53 +68,19 @@ export class APISeriesRepository implements SeriesRepository {
         action: "get_series_info",
         series_id: serieId,
       }).get("/player_api.php");
+
       const parsed = SerieInfoSchema.safeParse(response.data);
+
       if (!parsed.success) {
         console.error(parsed.error);
-        throw new Error("Failed to parse serie info");
+        return null;
       }
-      const { seasons, info, episodes } = response.data;
-      const mappedSeasons = seasons.map((season) =>
-        Season.create(
-          {
-            airDate: season.air_date,
-            episodeCount: season.episode_count,
-            name: season.name,
-            overview: season.overview,
-            seasonNumber: season.season_number,
-            voteAverage: season.vote_average,
-            cover: season.cover,
-            coverBig: season.cover_big,
-          },
-          season.id.toString(),
-        ),
-      );
-      const mappedInfo = Serie.create(
-        {
-          num: info.num,
-          name: info.name,
-          cover: info.cover,
-          plot: info.plot,
-          cast: info.cast,
-          director: info.director,
-          genre: info.genre,
-          releaseDate: info.releaseDate,
-          lastModified: info.last_modified,
-          rating: info.rating,
-          rating5based: info.rating_5based,
-          backdropPath: info.backdrop_path,
-          youtubeTrailer: info.youtube_trailer,
-          episodeRunTime: info.episode_run_time,
-          categoryId: info.category_id,
-        },
-        info.series_id,
-      );
-      const mappedEpisodes: Record<
-        number,
-        ReturnType<typeof Episode.create>[]
-      > = {};
+
+      const { seasons, info, episodes } = parsed.data;
+
+      const episodesBySeason: Record<number, Episode[]> = {};
       Object.entries(episodes).forEach(([seasonNum, seasonEpisodes]) => {
-        mappedEpisodes[Number(seasonNum)] = seasonEpisodes.map((episode) =>
+        episodesBySeason[Number(seasonNum)] = seasonEpisodes.map((episode) =>
           Episode.create(
             {
               episodeNum: episode.episode_num,
@@ -143,14 +112,47 @@ export class APISeriesRepository implements SeriesRepository {
           ),
         );
       });
-      return SerieInfo.create({
-        seasons: mappedSeasons,
-        info: mappedInfo,
-        episodes: mappedEpisodes,
-      });
+
+      const mappedSeasons = seasons.map((season) =>
+        Season.create(
+          {
+            airDate: season.air_date,
+            episodeCount: season.episode_count,
+            name: season.name,
+            overview: season.overview,
+            seasonNumber: season.season_number,
+            voteAverage: season.vote_average,
+            cover: season.cover,
+            coverBig: season.cover_big,
+            episodes: episodesBySeason[season.season_number] || [],
+          },
+          season.id.toString(),
+        ),
+      );
+
+      return Serie.create(
+        {
+          name: info.name,
+          cover: info.cover,
+          plot: info.plot,
+          cast: info.cast,
+          director: info.director,
+          genre: info.genre,
+          releaseDate: info.releaseDate,
+          lastModified: info.last_modified,
+          rating: info.rating,
+          rating5based: info.rating_5based,
+          backdropPath: info.backdrop_path,
+          youtubeTrailer: info.youtube_trailer,
+          episodeRunTime: info.episode_run_time,
+          categoryId: Number(info.category_id),
+          seasons: mappedSeasons,
+        },
+        info.series_id,
+      );
     } catch (error) {
       console.error(error);
-      throw error;
+      return null;
     }
   }
 }
