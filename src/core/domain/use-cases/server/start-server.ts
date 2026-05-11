@@ -1,13 +1,14 @@
-import { PlaylistRepository } from "../../repositories/playlist-repository";
-import {
-  StartStreamServerRepositoryParams,
-  StreamServerRepository,
-} from "../../repositories/stream-server-repository";
 import {
   StreamServerError,
   StreamServerResult,
   StreamServerStatus,
 } from "@/shared/types/ipc";
+
+import { PlaylistRepository } from "../../repositories/playlist-repository";
+import {
+  StartStreamServerRepositoryParams,
+  StreamServerRepository,
+} from "../../repositories/stream-server-repository";
 
 interface StartServerUseCaseParams {
   host?: string;
@@ -45,6 +46,8 @@ export class StartServerUseCase {
 
     const [playlist] = activePlaylists;
 
+    console.info("[start-server] Playlist found: ", playlist.id);
+
     const params: StartStreamServerRepositoryParams = {
       playlistId: playlist.id,
       server: playlist.server,
@@ -56,10 +59,14 @@ export class StartServerUseCase {
 
     const result = await this.streamServerRepository.start(params);
 
+    console.info("[start-server] start server response: ", result);
+
     return this.normalizeResult(result);
   }
 
-  private normalizeResult(result: StreamServerResult): StartServerUseCaseReturn {
+  private normalizeResult(
+    result: StreamServerResult,
+  ): StartServerUseCaseReturn {
     if (result.ok) {
       return {
         ok: true,
