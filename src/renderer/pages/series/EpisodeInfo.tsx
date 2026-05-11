@@ -1,4 +1,4 @@
-import { Episode } from "@/core/domain/entities/episode";
+import { EpisodeDTO } from "@/shared/types/dto";
 import { Clock, Play } from "lucide-react";
 import { useNavigate } from "react-router";
 
@@ -7,7 +7,7 @@ export const EpisodeInfo = ({
   serieId,
   seasonNumber,
 }: {
-  episodes: ReturnType<typeof Episode.create>[];
+  episodes: EpisodeDTO[];
   serieId: string;
   seasonNumber: number;
 }) => {

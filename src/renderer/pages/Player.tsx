@@ -1,4 +1,4 @@
-import { Episode, SerieInfo } from "@/shared/schemas";
+import { EpisodeDTO, SerieDTO } from "@/shared/types/dto";
 import {
   MediaPlayer,
   MediaPlayerInstance,
@@ -24,37 +24,42 @@ export const Player = () => {
 
   const queryParams = new URLSearchParams(location.search);
   const seriesId = queryParams.get("seriesId");
+  const seasonNumber = queryParams.get("season");
 
-  const [serieInfo, setSerieInfo] = useState<SerieInfo | null>(null);
-  const [currentEpisode, setCurrentEpisode] = useState<Episode | null>(null);
-  const [nextEpisode, setNextEpisode] = useState<Episode | null>(null);
+  const [serieInfo, setSerieInfo] = useState<SerieDTO | null>(null);
+  const [currentEpisode, setCurrentEpisode] = useState<EpisodeDTO | null>(null);
+  const [nextEpisode, setNextEpisode] = useState<EpisodeDTO | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [showNextEpisodePrompt, setShowNextEpisodePrompt] = useState(false);
+  const [showPoster, setShowPoster] = useState(true);
 
   const buildStreamUrl = (id: string) => {
-    return `http://localhost:9876/stream?streamId=${id}`;
-    // return `http://cdn23.in/series/FernandaSantos/83136955925/${id}.mkv`;
+    // return `http://localhost:9876/stream?streamId=${id}`;
+    return `http://cdn23.in/series/FernandaSantos/83136955925/${id}.mkv`;
   };
 
   const loadSerieData = useCallback(async () => {
     if (!seriesId || !streamId) return;
 
     try {
-      const res = await window.api.getSerieInfo(Number(seriesId));
+      const res = await window.api.serie.getById(Number(seriesId));
       setSerieInfo(res);
 
-      // Find current episode and next episode
-      let current: Episode | null = null;
-      let next: Episode | null = null;
-
-      const allEpisodes: Episode[] = [];
-      Object.values(res.episodes).forEach((seasonEpisodes) => {
-        allEpisodes.push(...seasonEpisodes);
-      });
-
-      const currentIndex = allEpisodes.findIndex(
-        (ep) => ep.id === Number(streamId),
+      const season = res.seasons.find(
+        (season) => season.seasonNumber === Number(seasonNumber),
       );
+
+      if (!season) {
+        throw new Error("Season not found.");
+      }
+
+      const allEpisodes: EpisodeDTO[] = season.episodes;
+      // Find current episode and next episode
+      let current: EpisodeDTO | null = null;
+      let next: EpisodeDTO | null = null;
+
+      const currentIndex = allEpisodes.findIndex((ep) => ep.id === streamId);
+
       if (currentIndex !== -1) {
         current = allEpisodes[currentIndex];
         if (currentIndex < allEpisodes.length - 1) {
@@ -77,33 +82,56 @@ export const Player = () => {
 
   // Resume playback position
   const onCanPlay = () => {
-    const savedPositions = window.api.store.get("playbackPositions") || {};
-    const savedPosition = savedPositions[streamId!];
-    if (savedPosition && playerRef.current) {
-      playerRef.current.currentTime = savedPosition;
-    }
+    window.store
+      .get("playbackPositions")
+      .then((raw) => {
+        const savedPositions: Record<string, number> = raw
+          ? (JSON.parse(raw) as Record<string, number>)
+          : {};
+        const savedPosition = savedPositions[streamId!];
+        if (savedPosition && playerRef.current) {
+          playerRef.current.currentTime = savedPosition;
+        }
+      })
+      .catch(() => {});
   };
 
   // Save playback position
   useEffect(() => {
     const interval = setInterval(() => {
-      if (playerRef.current && !playerRef.current.paused && streamId) {
-        const currentTime = playerRef.current.currentTime;
-        const duration = playerRef.current.duration;
+      if (!playerRef.current || playerRef.current.paused || !streamId) return;
 
-        // Only save if we are not at the very end (95%)
-        if (duration > 0 && currentTime / duration < 0.95) {
-          const savedPositions =
-            window.electron.store.get("playbackPositions") || {};
-          savedPositions[streamId] = currentTime;
-          window.electron.store.set("playbackPositions", savedPositions);
-        } else if (duration > 0 && currentTime / duration >= 0.95) {
-          // If near end, clear the position so it starts from beginning next time
-          const savedPositions =
-            window.electron.store.get("playbackPositions") || {};
-          delete savedPositions[streamId];
-          window.electron.store.set("playbackPositions", savedPositions);
-        }
+      const currentTime = playerRef.current.currentTime;
+      const duration = playerRef.current.duration;
+
+      if (duration > 0 && currentTime / duration < 0.95) {
+        window.store
+          .get("playbackPositions")
+          .then((raw) => {
+            const savedPositions: Record<string, number> = raw
+              ? (JSON.parse(raw) as Record<string, number>)
+              : {};
+            savedPositions[streamId] = currentTime;
+            return window.store.set(
+              "playbackPositions",
+              JSON.stringify(savedPositions),
+            );
+          })
+          .catch(() => {});
+      } else if (duration > 0 && currentTime / duration >= 0.95) {
+        window.store
+          .get("playbackPositions")
+          .then((raw) => {
+            const savedPositions: Record<string, number> = raw
+              ? (JSON.parse(raw) as Record<string, number>)
+              : {};
+            delete savedPositions[streamId];
+            return window.store.set(
+              "playbackPositions",
+              JSON.stringify(savedPositions),
+            );
+          })
+          .catch(() => {});
       }
     }, 5000);
 
@@ -129,6 +157,12 @@ export const Player = () => {
   const onTimeUpdate = () => {
     if (playerRef.current) {
       const { currentTime, duration } = playerRef.current;
+      console.log(duration);
+
+      if (duration > 0 && showPoster) {
+        setShowPoster(false);
+      }
+
       // Show next episode prompt in the last 30 seconds
       if (duration > 0 && duration - currentTime < 30 && nextEpisode) {
         setShowNextEpisodePrompt(true);
@@ -159,9 +193,9 @@ export const Player = () => {
         autoPlay
       >
         <MediaProvider>
-          {currentEpisode?.info?.movie_image && (
+          {currentEpisode?.info.movieImage && showPoster && (
             <Poster
-              src={currentEpisode.info.movie_image}
+              src={currentEpisode.info.movieImage}
               className="absolute inset-0 w-full h-full object-cover opacity-50"
             />
           )}
@@ -184,8 +218,8 @@ export const Player = () => {
               </h2>
               {serieInfo && (
                 <p className="text-sm text-gray-300">
-                  {serieInfo.info.name} • Season {currentEpisode?.season} •
-                  Episode {currentEpisode?.episode_num}
+                  {serieInfo.name} • Season {currentEpisode?.season} • Episode{" "}
+                  {currentEpisode?.episodeNum}
                 </p>
               )}
             </div>
@@ -197,9 +231,9 @@ export const Player = () => {
           <div className="absolute bottom-24 right-8 bg-gray-900/90 border border-purple-500/50 p-4 rounded-xl shadow-2xl z-20 animate-in slide-in-from-right-full">
             <div className="flex items-center gap-4">
               <div className="w-24 aspect-video rounded-lg overflow-hidden bg-gray-800">
-                {nextEpisode.info?.movie_image ? (
+                {nextEpisode.info?.movieImage ? (
                   <img
-                    src={nextEpisode.info.movie_image}
+                    src={nextEpisode.info.movieImage}
                     alt={nextEpisode.title}
                     className="w-full h-full object-cover"
                   />
