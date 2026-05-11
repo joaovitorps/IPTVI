@@ -72,10 +72,51 @@ const fetchStream = async (
   return responseStream;
 };
 
-const map = new Map();
+const map = new Map<string, number>();
 const mapStreamId = new Map<"streamId", number>();
 
-const handleRequest = async (
+let server: http.Server | null = null;
+let shutdownInProgress = false;
+
+const cleanupTempFiles = (streamId?: number) => {
+  const tempPath = getTempPath(streamId);
+  if (tempPath && fs.existsSync(tempPath)) {
+    try {
+      fs.unlinkSync(tempPath);
+    } catch {
+      // file may already be in use
+    }
+  }
+};
+
+const clearCaches = () => {
+  map.clear();
+  mapStreamId.clear();
+};
+
+const shutdown = () => {
+  if (shutdownInProgress) return;
+  shutdownInProgress = true;
+
+  if (startupTimer) {
+    clearTimeout(startupTimer);
+    startupTimer = null;
+  }
+
+  if (server) {
+    server.close();
+    server = null;
+  }
+
+  clearCaches();
+  cleanupTempFiles(mapStreamId.get("streamId"));
+
+  process.exit(0);
+};
+
+let startupTimer: ReturnType<typeof setTimeout> | null = null;
+
+const requestHandler = async (
   request: http.IncomingMessage,
   response: http.ServerResponse<http.IncomingMessage>,
   playlistCredential: Credentials,
@@ -91,7 +132,6 @@ const handleRequest = async (
       return responseJson(response, 400, { error: "Stream ID is required" });
     }
 
-    // Forward headers from client, but override/add essential ones
     const clientHeaders: Record<string, string> = {};
     for (const [key, value] of Object.entries(request.headers)) {
       if (value && typeof value === "string") {
@@ -104,7 +144,6 @@ const handleRequest = async (
     delete clientHeaders.connection;
 
     const requestRange = request.headers.range || "bytes=0-";
-    console.log("Client Request Range:", requestRange);
 
     const tempPath = getTempPath(streamId);
 
@@ -118,7 +157,7 @@ const handleRequest = async (
       const start = Number(arrayRange[0]);
       const end = arrayRange[1] ? Number(arrayRange[1]) : fileSize - 1;
 
-      const chunk = 1024 * 1024; // 1MB chunk for local files
+      const chunk = 1024 * 1024;
       const finalEnd = Math.min(end, start + chunk);
       const contentLength = finalEnd - start + 1;
 
@@ -142,14 +181,11 @@ const handleRequest = async (
 
     const streamUrl = buildUrl(playlistCredential, streamId);
 
-    // Get content length if not cached
     let totalLength = map.get(`content-length-${streamId}`) as
       | number
       | undefined;
     if (totalLength === undefined) {
-      console.log("Fetching content length for", streamUrl);
       const headRes = await fetchStream(streamUrl, {
-        // ...clientHeaders,
         Range: "bytes=0-0",
       });
 
@@ -169,15 +205,12 @@ const handleRequest = async (
     const start = Number(arrayRange[0]);
     const end = arrayRange[1] ? Number(arrayRange[1]) : (totalLength || 1) - 1;
 
-    // Use a larger chunk for remote streams to reduce overhead, but not too large
-    const chunk = 5 * 1024 * 1024; // 5MB
+    const chunk = 5 * 1024 * 1024;
     const finalEnd = totalLength ? Math.min(end, start + chunk) : end;
 
     const range = `bytes=${start}-${finalEnd}`;
-    console.log("Fetching remote range:", range);
 
     const responseStream = await fetchStream(streamUrl, {
-      // ...clientHeaders,
       Range: range,
     });
 
@@ -213,38 +246,8 @@ const handleRequest = async (
   }
 };
 
-process.on("exit", () => {
-  console.log("Process exited");
-  if (!mapStreamId.has("streamId")) return;
-
-  const streamId = mapStreamId.get("streamId");
-  const tempPath = getTempPath(streamId);
-
-  if (tempPath && fs.existsSync(tempPath)) {
-    fs.existsSync(tempPath);
-  }
-
-  mapStreamId.delete("streamId");
-});
-
-process.on("SIGINT", () => {
-  console.log("Received SIGINT signal");
-  process.exit();
-});
-
-process.on("disconnect", () => {
-  console.log("Parent disconnected, shutting down child...");
-  process.exit();
-});
-
-process.on("message", (playlistCredential: Credentials) => {
-  console.log("Received from parent:", playlistCredential);
-
-  if (process.send) {
-    process.send(`PID ${process.pid}`);
-  }
-
-  const server = http.createServer((request, response) => {
+const startServer = (playlistCredential: Credentials) => {
+  server = http.createServer((request, response) => {
     if (request.method === "OPTIONS") {
       response.writeHead(204, {
         "Access-Control-Allow-Origin": "*",
@@ -256,7 +259,7 @@ process.on("message", (playlistCredential: Credentials) => {
       return;
     }
 
-    handleRequest(request, response, playlistCredential).catch((err) => {
+    requestHandler(request, response, playlistCredential).catch((err) => {
       console.error(err);
       if (!response.writableEnded) {
         response.writeHead(500, "Internal Server Error");
@@ -269,6 +272,53 @@ process.on("message", (playlistCredential: Credentials) => {
   });
 
   server.listen(9876, "127.0.0.1", () => {
-    console.log(`Server created and running`);
+    console.log("Server created and running");
   });
+};
+
+process.on("exit", () => {
+  cleanupTempFiles(mapStreamId.get("streamId"));
+});
+
+process.on("SIGINT", () => {
+  shutdown();
+});
+
+process.on("SIGTERM", () => {
+  shutdown();
+});
+
+process.on("disconnect", () => {
+  shutdown();
+});
+
+process.on("uncaughtException", (err) => {
+  console.error("Uncaught exception:", err);
+  shutdown();
+});
+
+process.on("unhandledRejection", (reason) => {
+  console.error("Unhandled rejection:", reason);
+  shutdown();
+});
+
+process.on("message", (msg: unknown) => {
+  const message = msg as Record<string, unknown>;
+
+  if (message.type === "shutdown") {
+    shutdown();
+    return;
+  }
+
+  if (message.type === "credentials") {
+    const { server: srv, username, password } = message as unknown as Credentials;
+    const credentials: Credentials = { server: srv, username, password };
+
+    if (process.send) {
+      process.send(`PID ${process.pid}`);
+    }
+
+    startServer(credentials);
+    return;
+  }
 });

@@ -8,6 +8,10 @@ import { categoryIpcHandlers } from "./category-ipc";
 import { playlistIpcHandlers } from "./playlist-ipc";
 import { serieIpcHandlers } from "./serie-ipc";
 import { storeIpcHandlers } from "./store-ipc";
+import {
+  streamServerLifecycleHandlers,
+  streamServerLifecycleManager,
+} from "./stream-server-ipc";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -59,34 +63,20 @@ app.on("ready", () => {
   categoryIpcHandlers(ipcMain);
   serieIpcHandlers(ipcMain);
   storeIpcHandlers(ipcMain);
+  streamServerLifecycleHandlers(ipcMain);
 
   ElectronStore.initRenderer();
 
-  // const child = fork(path.join(__dirname, "streamParser.js"));
-
-  // child.on("message", (message) => {
-  //   console.log(message, "from child");
-  // });
-
-  // child.on("exit", (code) => {
-  //   console.log("child exited with code", code);
-  // });
-
-  // watch("./", (eventType, filename) => {
-  //   console.log(`Event Name: ${eventType}`);
-  //   console.log(`File Triggered: ${filename}`);
-  // });
-
-  // const fetchActivePlaylists = new FetchActivePlaylistsUseCase(
-  //   new StorePlaylistRepository(),
-  // );
-
-  // const { playlists } = fetchActivePlaylists.execute();
-
-  // child.send(playlists[0].credentials);
-
   createWindow();
 });
+
+// Ensure stream server is stopped before app quits
+const stopStreamServerOnQuit = () => {
+  streamServerLifecycleManager.forceStop();
+};
+
+app.on("before-quit", stopStreamServerOnQuit);
+app.on("will-quit", stopStreamServerOnQuit);
 
 // Quit when all windows are closed, except on macOS. There, it's common
 // for applications and their menu bar to stay active until the user quits

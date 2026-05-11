@@ -11,7 +11,7 @@ export default defineConfig({
     lib: {
       entry: {
         main: resolve(__dirname, "src/main/main.ts"),
-        streamParser: resolve(__dirname, "src/main/streamParser.ts"),
+        streamParser: resolve(__dirname, "src/main/stream-parser.ts"),
       },
       // Output ESM so main.js is valid with package.json "type": "module"
       fileName: (_format, entryName) => `${entryName}.js`,
