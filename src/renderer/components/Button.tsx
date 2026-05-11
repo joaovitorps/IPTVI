@@ -1,3 +1,4 @@
+import { cn } from "@renderer/lib/utils";
 import React from "react";
 import { Link } from "react-router";
 
@@ -12,7 +13,7 @@ export const Button = ({
   return (
     <Link
       to={path}
-      className="bg-purple-500 cursor-pointer p-1 rounded-md"
+      className={cn("bg-purple-500", "cursor-pointer", "p-1", "rounded-md")}
       {...props}
     >
       {children}

@@ -1,7 +1,10 @@
 import { IPC } from "@/shared/constants/ipc";
+import type { StoreSchema } from "@/shared/store";
 import {
+  Api,
   CreatePlaylist,
   FetchPlaylistsReturn,
+  Store,
   UpdatePlaylist,
 } from "@/shared/types";
 import { CategoryDTO, SerieDTO } from "@/shared/types/dto";
@@ -12,7 +15,7 @@ import {
 } from "@/shared/types/ipc";
 import { contextBridge, ipcRenderer } from "electron";
 
-const api = {
+const api: Api = {
   playlist: {
     activate(playlistId: string): Promise<void> {
       return ipcRenderer.invoke(IPC.PLAYLIST.ACTIVATE, playlistId);
@@ -54,9 +57,14 @@ const api = {
   },
 };
 
-contextBridge.exposeInMainWorld(
-  "api",
-  api,
-  // getSerieInfo: (serie_id: number) =>
-  //   ipcRenderer.invoke("get-serie-info", serie_id),
-);
+const store: Store = {
+  get(key: keyof StoreSchema): Promise<string> {
+    return ipcRenderer.invoke(IPC.STORE.GET, key);
+  },
+  set(key: keyof StoreSchema, value: unknown): Promise<void> {
+    return ipcRenderer.invoke(IPC.STORE.SET, key, value);
+  },
+};
+
+contextBridge.exposeInMainWorld("api", api);
+contextBridge.exposeInMainWorld("store", store);

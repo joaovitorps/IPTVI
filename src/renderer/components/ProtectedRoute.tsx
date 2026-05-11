@@ -1,3 +1,4 @@
+import { cn } from "@renderer/lib/utils";
 import { useEffect, useState } from "react";
 import { Navigate, Outlet } from "react-router";
 
@@ -50,8 +51,27 @@ export const ProtectedRoute = () => {
 
   if (isVerifying) {
     return (
-      <div className="flex items-center justify-center h-screen bg-zinc-950 text-white">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-amber-400"></div>
+      <div
+        className={cn(
+          "flex",
+          "items-center",
+          "justify-center",
+          "h-screen",
+          "bg-zinc-950",
+          "text-white",
+        )}
+      >
+        <div
+          className={cn(
+            "animate-spin",
+            "rounded-full",
+            "h-12",
+            "w-12",
+            "border-t-2",
+            "border-b-2",
+            "border-amber-400",
+          )}
+        ></div>
       </div>
     );
   }
