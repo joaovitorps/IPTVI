@@ -3,7 +3,7 @@ import Store from "electron-store";
 
 import { env } from "./env";
 
-interface StoreSchema {
+export interface StoreSchema {
   playlists: Playlist[];
   playbackPositions: string;
 }

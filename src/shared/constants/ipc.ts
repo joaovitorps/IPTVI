@@ -14,4 +14,8 @@ export const IPC = {
     GET_BY_ID: "serie:get-by-id",
     FETCH_BY_CATEGORY_ID: "serie:fetch-by-category-id",
   },
+  STORE: {
+    GET: "electron-store:get",
+    SET: "electron-store:set",
+  },
 };

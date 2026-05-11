@@ -1,4 +1,5 @@
 import { Playlist } from "@/core/domain/entities/playlist";
+import type { StoreSchema } from "@/shared/store";
 
 import { CategoryDTO, SerieDTO } from "./types/dto";
 import { ValidateParams, ValidateReturn } from "./types/ipc";
@@ -48,27 +49,37 @@ export interface UpdatePlaylist {
 
 declare global {
   interface Window {
-    api: {
-      playlist: {
-        activate: (playlistId: string) => Promise<void>;
-        validate: (params: ValidateParams) => Promise<ValidateReturn>;
-        fetch: () => Promise<Playlist[]>;
-        create: ({
-          name,
-          server,
-          username,
-          password,
-        }: CreatePlaylist) => Promise<Playlist>;
-        update: ({ playlistId, data }: UpdatePlaylist) => Playlist | false;
-        delete: (playlistId: string) => Promise<void>;
-      };
-      category: {
-        fetch: () => Promise<CategoryDTO[]>;
-      };
-      serie: {
-        getById: (serieId: number) => Promise<SerieDTO>;
-        fetchByCategoryId: (categoryId: number) => Promise<SerieDTO[]>;
-      };
-    };
+    api: Api;
+    store: Store;
   }
+}
+
+export interface Api {
+  playlist: {
+    activate: (playlistId: string) => Promise<void>;
+    validate: (params: ValidateParams) => Promise<ValidateReturn>;
+    fetch: () => Promise<Playlist[]>;
+    create: ({
+      name,
+      server,
+      username,
+      password,
+    }: CreatePlaylist) => Promise<Playlist>;
+    update: ({ playlistId, data }: UpdatePlaylist) => Playlist | false;
+    delete: (playlistId: string) => Promise<void>;
+  };
+  category: {
+    fetch: () => Promise<CategoryDTO[]>;
+  };
+  serie: {
+    getById: (serieId: number) => Promise<SerieDTO>;
+    fetchByCategoryId: (categoryId: number) => Promise<SerieDTO[]>;
+  };
+}
+export interface Store {
+  get: <K extends keyof StoreSchema>(key: K) => Promise<string>;
+  set: <K extends keyof StoreSchema>(
+    key: K,
+    value: StoreSchema[K],
+  ) => Promise<void>;
 }
