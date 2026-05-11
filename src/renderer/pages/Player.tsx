@@ -21,6 +21,9 @@ export const Player = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const playerRef = useRef<MediaPlayerInstance>(null);
+  const serverStarted = useRef(false);
+
+  const [streamBaseUrl, setStreamBaseUrl] = useState<string>("");
 
   const queryParams = new URLSearchParams(location.search);
   const seriesId = queryParams.get("seriesId");
@@ -34,8 +37,11 @@ export const Player = () => {
   const [showPoster, setShowPoster] = useState(true);
 
   const buildStreamUrl = (id: string) => {
-    // return `http://localhost:9876/stream?streamId=${id}`;
-    return `http://cdn23.in/series/FernandaSantos/83136955925/${id}.mkv`;
+    if (streamBaseUrl) {
+      return `${streamBaseUrl}/stream?streamId=${id}`;
+    }
+
+    return `http://localhost:9876/stream?streamId=${id};`;
   };
 
   const loadSerieData = useCallback(async () => {
@@ -79,6 +85,25 @@ export const Player = () => {
   useEffect(() => {
     void loadSerieData();
   }, [loadSerieData]);
+
+  // Manage stream server lifecycle on mount/unmount
+  useEffect(() => {
+    serverStarted.current = true;
+
+    window.api.streamServer.start().then((result) => {
+      if (result.ok) {
+        setStreamBaseUrl(result.status.baseUrl);
+      } else {
+        console.warn("[player] stream server start failed:", result.error);
+      }
+    });
+
+    return () => {
+      serverStarted.current = false;
+
+      window.api.streamServer.stop({ reason: "player-unmount" });
+    };
+  }, []);
 
   // Resume playback position
   const onCanPlay = () => {
@@ -207,7 +232,10 @@ export const Player = () => {
         <div className="absolute top-0 left-0 right-0 p-8 bg-linear-to-b from-black/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity z-10">
           <div className="flex items-center gap-4">
             <button
-              onClick={() => void navigate(-1)}
+              onClick={() => {
+                window.api.streamServer.stop({ reason: "user-back" });
+                void navigate(-1);
+              }}
               className="p-2 hover:bg-white/20 rounded-full transition-colors text-white"
             >
               <ArrowLeft size={24} />
