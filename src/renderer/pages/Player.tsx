@@ -37,6 +37,7 @@ export const Player = () => {
   const [showPoster, setShowPoster] = useState(true);
 
   const buildStreamUrl = (id: string) => {
+    console.log(streamBaseUrl);
     if (streamBaseUrl) {
       return `${streamBaseUrl}/stream?streamId=${id}`;
     }
@@ -90,18 +91,27 @@ export const Player = () => {
   useEffect(() => {
     serverStarted.current = true;
 
-    void window.api.streamServer.start().then((result) => {
-      if (result.ok) {
-        setStreamBaseUrl(result.status.baseUrl);
-      } else {
-        console.warn("[player] stream server start failed:", result.error);
-      }
-    });
+    async function start() {
+      await window.api.streamServer.start().then((result) => {
+        console.log("result", result);
+        if (result.ok) {
+          setStreamBaseUrl(result.status.baseUrl);
+        } else {
+          console.warn("[player] stream server start failed:", result.error);
+        }
+      });
+    }
 
-    return () => {
+    async function stop() {
       serverStarted.current = false;
 
-      void window.api.streamServer.stop({ reason: "player-unmount" });
+      await window.api.streamServer.stop({ reason: "player-unmount" });
+    }
+
+    void start();
+
+    return () => {
+      void stop();
     };
   }, []);
 
@@ -182,7 +192,6 @@ export const Player = () => {
   const onTimeUpdate = () => {
     if (playerRef.current) {
       const { currentTime, duration } = playerRef.current;
-      console.log(duration);
 
       if (duration > 0 && showPoster) {
         setShowPoster(false);
