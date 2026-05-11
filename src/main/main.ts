@@ -1,11 +1,13 @@
 import { BrowserWindow, app, ipcMain } from "electron";
 import started from "electron-squirrel-startup";
+import ElectronStore from "electron-store";
 import path, { dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { categoryIpcHandlers } from "./category-ipc";
 import { playlistIpcHandlers } from "./playlist-ipc";
 import { serieIpcHandlers } from "./serie-ipc";
+import { storeIpcHandlers } from "./store-ipc";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -56,14 +58,9 @@ app.on("ready", () => {
   playlistIpcHandlers(ipcMain);
   categoryIpcHandlers(ipcMain);
   serieIpcHandlers(ipcMain);
+  storeIpcHandlers(ipcMain);
 
-  // ipcMain.handle("get-series-category", (_event, categoryId: number) => {
-  //   return fetchSeries(categoryId);
-  // });
-
-  // ipcMain.handle("get-serie-info", (_event, serieId: number) => {
-  //   return fetchSerieInfo(serieId);
-  // });
+  ElectronStore.initRenderer();
 
   // const child = fork(path.join(__dirname, "streamParser.js"));
 

@@ -1,22 +1,21 @@
 import { APISeriesRepository } from "@/core/domain/repositories/api/api-series-repository";
 import { StorePlaylistRepository } from "@/core/domain/repositories/store/store-playlist-repository";
-import { FetchActivePlaylistsUseCase } from "@/core/domain/use-cases/playlist/fetch-active-playlists";
-import { FetchSeriesUseCase } from "@/core/domain/use-cases/series/fetch-series-by-category";
+import { GetSerieByIdUseCase } from "@/core/domain/use-cases/series/get-serie-by-id";
 
-export const fetchSeries = async (categoryId: number) => {
-  const fetchActivePlaylists = new FetchActivePlaylistsUseCase(
-    new StorePlaylistRepository(),
-  );
-
-  const { playlists } = fetchActivePlaylists.execute();
+export const getSeriById = async (serieId: number) => {
+  const storeRepo = new StorePlaylistRepository();
+  const playlists = await storeRepo.fetchActives();
 
   if (playlists.length === 0) throw new Error("No active playlist");
 
-  const fetchSeries = new FetchSeriesUseCase(
-    new APISeriesRepository(playlists[0].credentials),
+  const { server, username, password } = playlists[0];
+  const getSerieByIdUseCase = new GetSerieByIdUseCase(
+    new APISeriesRepository(server, username, password),
   );
 
-  const { series } = await fetchSeries.execute({ categoryId });
+  const { serie } = await getSerieByIdUseCase.execute({
+    serieId: String(serieId),
+  });
 
-  return series;
+  return serie.toJSON();
 };
