@@ -14,7 +14,7 @@ export interface EpisodeDTO {
     releasedate: string;
     plot: string;
     durationSecs: number;
-    duration: string;
+    duration?: string;
     movieImage?: string;
     video: {
       width: number;

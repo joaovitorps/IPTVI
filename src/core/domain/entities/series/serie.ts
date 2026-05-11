@@ -1,6 +1,7 @@
 import { SerieDTO } from "@/shared/types/dto";
 
 import { Entity } from "../entity";
+import { Season } from "./season";
 
 export interface SeriesProps {
   num?: number;
@@ -17,7 +18,8 @@ export interface SeriesProps {
   backdropPath: string[] | null;
   youtubeTrailer: string;
   episodeRunTime: number;
-  categoryId: string;
+  categoryId: number;
+  seasons: Season[];
 }
 
 export class Serie extends Entity<SeriesProps> {
@@ -81,14 +83,20 @@ export class Serie extends Entity<SeriesProps> {
     return this.props.episodeRunTime;
   }
 
-  get categoryId(): string {
+  get categoryId(): number {
     return this.props.categoryId;
+  }
+
+  get seasons(): Season[] {
+    return this.props.seasons;
   }
 
   public toJSON(): SerieDTO {
     return {
       id: this.id,
       ...this.props,
+      categoryId: String(this.props.categoryId),
+      seasons: this.props.seasons.map((season) => season.toJSON()),
     };
   }
 }
