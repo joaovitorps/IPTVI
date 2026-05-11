@@ -1,11 +1,6 @@
 import { IPC } from "@/shared/constants/ipc";
 import type { StoreSchema } from "@/shared/store";
-import {
-  Api,
-  PlaylistDTO,
-  Store,
-  UpdatePlaylist,
-} from "@/shared/types";
+import { Api, PlaylistDTO, Store, UpdatePlaylist } from "@/shared/types";
 import { CategoryDTO, SerieDTO } from "@/shared/types/dto";
 import {
   CreatePlaylistParams,

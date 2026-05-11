@@ -1,5 +1,6 @@
-import { StreamServerRepository } from "../../repositories/stream-server-repository";
 import { StopStreamServerParams, StreamServerError } from "@/shared/types/ipc";
+
+import { StreamServerRepository } from "../../repositories/stream-server-repository";
 
 interface StopServerUseCaseParams {
   force?: boolean;
@@ -13,7 +14,9 @@ interface StopServerUseCaseReturn {
 }
 
 export class StopServerUseCase {
-  constructor(private readonly streamServerRepository: StreamServerRepository) {}
+  constructor(
+    private readonly streamServerRepository: StreamServerRepository,
+  ) {}
 
   async execute({
     force = false,

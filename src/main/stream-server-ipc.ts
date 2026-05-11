@@ -1,17 +1,17 @@
 import { StorePlaylistRepository } from "@/core/domain/repositories/store/store-playlist-repository";
+import { GetServerStatusUseCase } from "@/core/domain/use-cases/server/get-server-status";
 import { StartServerUseCase } from "@/core/domain/use-cases/server/start-server";
 import { StopServerUseCase } from "@/core/domain/use-cases/server/stop-server";
-import { GetServerStatusUseCase } from "@/core/domain/use-cases/server/get-server-status";
 import { IPC } from "@/shared/constants/ipc";
 import {
   StartStreamServerParams,
   StopStreamServerParams,
 } from "@/shared/types/ipc";
 import { IpcMain } from "electron";
+
 import { StreamServerLifecycleManager } from "./lifecycle/stream-server-lifecycle-manager";
 
-export const streamServerLifecycleManager =
-  new StreamServerLifecycleManager();
+export const streamServerLifecycleManager = new StreamServerLifecycleManager();
 
 export const streamServerLifecycleHandlers = (ipcMain: IpcMain) => {
   const startServerUseCase = new StartServerUseCase(
@@ -19,9 +19,7 @@ export const streamServerLifecycleHandlers = (ipcMain: IpcMain) => {
     streamServerLifecycleManager,
   );
 
-  const stopServerUseCase = new StopServerUseCase(
-    streamServerLifecycleManager,
-  );
+  const stopServerUseCase = new StopServerUseCase(streamServerLifecycleManager);
 
   const getServerStatusUseCase = new GetServerStatusUseCase(
     streamServerLifecycleManager,
