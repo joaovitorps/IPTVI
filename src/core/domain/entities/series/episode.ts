@@ -1,4 +1,4 @@
-import { Entity } from "./entity";
+import { Entity } from "../entity";
 
 export interface EpisodeProps {
   episodeNum: number;
@@ -9,7 +9,7 @@ export interface EpisodeProps {
     releasedate: string;
     plot: string;
     durationSecs: number;
-    duration: string;
+    duration?: string;
     movieImage?: string;
     video: {
       width: number;
@@ -28,8 +28,8 @@ export interface EpisodeProps {
 }
 
 export class Episode extends Entity<EpisodeProps> {
-  static create(props: EpisodeProps, id?: string) {
-    return new Episode(props, id).toJSON();
+  static create(props: EpisodeProps, id?: string): Episode {
+    return new Episode(props, id);
   }
 
   get episodeNum(): number {

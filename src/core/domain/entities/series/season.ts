@@ -1,4 +1,5 @@
 import { Entity } from "../entity";
+import { Episode } from "./episode";
 
 export interface SeasonProps {
   airDate: string;
@@ -9,11 +10,12 @@ export interface SeasonProps {
   voteAverage?: number;
   cover: string;
   coverBig: string;
+  episodes: Episode[];
 }
 
 export class Season extends Entity<SeasonProps> {
-  static create(props: SeasonProps, id?: string) {
-    return new Season(props, id).toJSON();
+  static create(props: SeasonProps, id?: string): Season {
+    return new Season(props, id);
   }
 
   get airDate(): string {
@@ -48,10 +50,15 @@ export class Season extends Entity<SeasonProps> {
     return this.props.coverBig;
   }
 
+  get episodes(): Episode[] {
+    return this.props.episodes;
+  }
+
   public toJSON() {
     return {
       id: this.id,
       ...this.props,
+      episodes: this.props.episodes.map((ep) => ep.toJSON()),
     };
   }
 }
