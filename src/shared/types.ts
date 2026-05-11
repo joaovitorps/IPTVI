@@ -71,7 +71,10 @@ export interface Api {
       username,
       password,
     }: CreatePlaylistData) => Promise<PlaylistDTO>;
-    update: ({ playlistId, data }: UpdatePlaylist) => Promise<PlaylistDTO | false>;
+    update: ({
+      playlistId,
+      data,
+    }: UpdatePlaylist) => Promise<PlaylistDTO | false>;
     delete: (playlistId: string) => Promise<void>;
   };
   category: {

@@ -14,9 +14,7 @@ export interface StartStreamServerRepositoryParams {
 }
 
 export interface StreamServerRepository {
-  start(
-    params: StartStreamServerRepositoryParams,
-  ): Promise<StreamServerResult>;
+  start(params: StartStreamServerRepositoryParams): Promise<StreamServerResult>;
   stop(params: StopStreamServerParams): Promise<StreamServerResult>;
   status(): StreamServerStatus;
 }
