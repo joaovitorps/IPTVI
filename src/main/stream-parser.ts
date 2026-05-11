@@ -59,7 +59,10 @@ const fetchStream = async (
     console.log("401");
     if (attempts > 0) {
       console.log("Retrying...");
-      return fetchStream(streamUrl, headers, attempts - 1);
+      return setInterval(
+        () => void fetchStream(streamUrl, headers, attempts - 1),
+        5000,
+      );
     } else {
       throw new Error("Max retries exceeded");
     }
@@ -266,7 +269,7 @@ const startServer = (playlistCredential: Credentials) => {
   });
 
   server.on("error", (error) => {
-    console.error(error);
+    console.error("error", error);
   });
 
   server.listen(9876, "127.0.0.1", () => {
@@ -309,7 +312,11 @@ process.on("message", (msg: unknown) => {
   }
 
   if (message.type === "credentials") {
-    const { server: srv, username, password } = message as unknown as Credentials;
+    const {
+      server: srv,
+      username,
+      password,
+    } = message as unknown as Credentials;
     const credentials: Credentials = { server: srv, username, password };
 
     if (process.send) {
