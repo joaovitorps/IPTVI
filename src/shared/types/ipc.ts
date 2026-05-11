@@ -11,7 +11,59 @@ export interface CreatePlaylistParams {
   password: string;
 }
 
-//
+export type StreamServerState =
+  | "stopped"
+  | "starting"
+  | "running"
+  | "stopping"
+  | "error";
+
+export type StreamServerErrorCode =
+  | "ALREADY_RUNNING"
+  | "NOT_RUNNING"
+  | "NO_ACTIVE_PLAYLIST"
+  | "SPAWN_FAILED"
+  | "START_TIMEOUT"
+  | "STOP_TIMEOUT"
+  | "UNEXPECTED_EXIT"
+  | "INTERNAL";
+
+export interface StreamServerError {
+  code: StreamServerErrorCode;
+  message: string;
+}
+
+export interface StreamServerStatus {
+  state: StreamServerState;
+  pid?: number;
+  host: string;
+  port: number;
+  baseUrl: string;
+  playlistId?: string;
+  startedAt?: string;
+  lastError?: StreamServerError;
+}
+
+export interface StartStreamServerParams {
+  host?: string;
+  port?: number;
+}
+
+export interface StopStreamServerParams {
+  force?: boolean;
+  reason?: string;
+}
+
+export type StreamServerResult =
+  | {
+      ok: true;
+      status: StreamServerStatus;
+    }
+  | {
+      ok: false;
+      status: StreamServerStatus;
+      error: StreamServerError;
+    };
 
 interface Success {
   isValid: true;

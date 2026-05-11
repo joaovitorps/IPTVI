@@ -14,6 +14,11 @@ export const IPC = {
     GET_BY_ID: "serie:get-by-id",
     FETCH_BY_CATEGORY_ID: "serie:fetch-by-category-id",
   },
+  STREAM_SERVER: {
+    START: "stream-server:start",
+    STOP: "stream-server:stop",
+    STATUS: "stream-server:status",
+  },
   STORE: {
     GET: "electron-store:get",
     SET: "electron-store:set",

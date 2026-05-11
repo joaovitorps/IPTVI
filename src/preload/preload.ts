@@ -2,14 +2,16 @@ import { IPC } from "@/shared/constants/ipc";
 import type { StoreSchema } from "@/shared/store";
 import {
   Api,
-  CreatePlaylist,
-  FetchPlaylistsReturn,
+  PlaylistDTO,
   Store,
   UpdatePlaylist,
 } from "@/shared/types";
 import { CategoryDTO, SerieDTO } from "@/shared/types/dto";
 import {
   CreatePlaylistParams,
+  StartStreamServerParams,
+  StopStreamServerParams,
+  StreamServerResult,
   ValidateParams,
   ValidateReturn,
 } from "@/shared/types/ipc";
@@ -25,11 +27,11 @@ const api: Api = {
       return ipcRenderer.invoke(IPC.PLAYLIST.VALIDATE, params);
     },
 
-    create(params: CreatePlaylistParams): Promise<CreatePlaylist> {
+    create(params: CreatePlaylistParams): Promise<PlaylistDTO> {
       return ipcRenderer.invoke(IPC.PLAYLIST.CREATE, params);
     },
 
-    fetch(): Promise<FetchPlaylistsReturn> {
+    fetch() {
       return ipcRenderer.invoke(IPC.PLAYLIST.FETCH);
     },
 
@@ -53,6 +55,17 @@ const api: Api = {
     },
     fetchByCategoryId(categoryId: number): Promise<SerieDTO[]> {
       return ipcRenderer.invoke(IPC.SERIE.FETCH_BY_CATEGORY_ID, categoryId);
+    },
+  },
+  streamServer: {
+    start(params?: StartStreamServerParams): Promise<StreamServerResult> {
+      return ipcRenderer.invoke(IPC.STREAM_SERVER.START, params);
+    },
+    stop(params?: StopStreamServerParams): Promise<StreamServerResult> {
+      return ipcRenderer.invoke(IPC.STREAM_SERVER.STOP, params);
+    },
+    status(): Promise<StreamServerResult> {
+      return ipcRenderer.invoke(IPC.STREAM_SERVER.STATUS);
     },
   },
 };

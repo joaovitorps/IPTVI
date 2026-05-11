@@ -1,8 +1,13 @@
-import { Playlist } from "@/core/domain/entities/playlist";
 import type { StoreSchema } from "@/shared/store";
 
 import { CategoryDTO, SerieDTO } from "./types/dto";
-import { ValidateParams, ValidateReturn } from "./types/ipc";
+import {
+  StartStreamServerParams,
+  StopStreamServerParams,
+  StreamServerResult,
+  ValidateParams,
+  ValidateReturn,
+} from "./types/ipc";
 
 export interface StreamTrack {
   index: number;
@@ -24,14 +29,11 @@ export interface RemuxProgress {
   message: string;
 }
 
-export interface CreatePlaylist {
+export interface CreatePlaylistData {
   name: string;
   server: string;
   username: string;
   password: string;
-}
-export interface FetchPlaylistsReturn {
-  playlists: Playlist[];
 }
 
 export interface Credentials {
@@ -42,9 +44,13 @@ export interface Credentials {
 
 export interface UpdatePlaylist {
   playlistId: string;
-  data: Partial<
-    Pick<Playlist, "name" | "server" | "username" | "password" | "isActive">
-  >;
+  data: {
+    name?: string;
+    server?: string;
+    username?: string;
+    password?: string;
+    isActive?: boolean;
+  };
 }
 
 declare global {
@@ -58,14 +64,14 @@ export interface Api {
   playlist: {
     activate: (playlistId: string) => Promise<void>;
     validate: (params: ValidateParams) => Promise<ValidateReturn>;
-    fetch: () => Promise<Playlist[]>;
+    fetch: () => Promise<PlaylistDTO[]>;
     create: ({
       name,
       server,
       username,
       password,
-    }: CreatePlaylist) => Promise<Playlist>;
-    update: ({ playlistId, data }: UpdatePlaylist) => Playlist | false;
+    }: CreatePlaylistData) => Promise<PlaylistDTO>;
+    update: ({ playlistId, data }: UpdatePlaylist) => Promise<PlaylistDTO | false>;
     delete: (playlistId: string) => Promise<void>;
   };
   category: {
@@ -75,6 +81,11 @@ export interface Api {
     getById: (serieId: number) => Promise<SerieDTO>;
     fetchByCategoryId: (categoryId: number) => Promise<SerieDTO[]>;
   };
+  streamServer: {
+    start: (params?: StartStreamServerParams) => Promise<StreamServerResult>;
+    stop: (params?: StopStreamServerParams) => Promise<StreamServerResult>;
+    status: () => Promise<StreamServerResult>;
+  };
 }
 export interface Store {
   get: <K extends keyof StoreSchema>(key: K) => Promise<string>;
@@ -82,4 +93,15 @@ export interface Store {
     key: K,
     value: StoreSchema[K],
   ) => Promise<void>;
+}
+
+export interface PlaylistDTO {
+  id: string;
+  name: string;
+  server: string;
+  username: string;
+  password: string;
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt?: Date;
 }
