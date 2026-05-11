@@ -90,7 +90,7 @@ export const Player = () => {
   useEffect(() => {
     serverStarted.current = true;
 
-    window.api.streamServer.start().then((result) => {
+    void window.api.streamServer.start().then((result) => {
       if (result.ok) {
         setStreamBaseUrl(result.status.baseUrl);
       } else {
@@ -101,7 +101,7 @@ export const Player = () => {
     return () => {
       serverStarted.current = false;
 
-      window.api.streamServer.stop({ reason: "player-unmount" });
+      void window.api.streamServer.stop({ reason: "player-unmount" });
     };
   }, []);
 
@@ -233,7 +233,7 @@ export const Player = () => {
           <div className="flex items-center gap-4">
             <button
               onClick={() => {
-                window.api.streamServer.stop({ reason: "user-back" });
+                void window.api.streamServer.stop({ reason: "user-back" });
                 void navigate(-1);
               }}
               className="p-2 hover:bg-white/20 rounded-full transition-colors text-white"

@@ -181,9 +181,7 @@ const requestHandler = async (
 
     const streamUrl = buildUrl(playlistCredential, streamId);
 
-    let totalLength = map.get(`content-length-${streamId}`) as
-      | number
-      | undefined;
+    let totalLength = map.get(`content-length-${streamId}`);
     if (totalLength === undefined) {
       const headRes = await fetchStream(streamUrl, {
         Range: "bytes=0-0",

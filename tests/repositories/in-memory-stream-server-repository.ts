@@ -33,10 +33,10 @@ export class InMemoryStreamServerRepository implements StreamServerRepository {
       startedAt: new Date().toISOString(),
     };
 
-    return {
+    return await Promise.resolve({
       ok: true,
       status: this.currentStatus,
-    };
+    });
   }
 
   async stop(params: StopStreamServerParams): Promise<StreamServerResult> {
@@ -49,10 +49,10 @@ export class InMemoryStreamServerRepository implements StreamServerRepository {
       playlistId: undefined,
     };
 
-    return {
+    return await Promise.resolve({
       ok: true,
       status: this.currentStatus,
-    };
+    });
   }
 
   status(): StreamServerStatus {
