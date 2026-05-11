@@ -1,6 +1,3 @@
-import { fork, ChildProcess } from "node:child_process";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
 import {
   StartStreamServerRepositoryParams,
   StreamServerRepository,
@@ -8,9 +5,12 @@ import {
 import {
   StopStreamServerParams,
   StreamServerResult,
-  StreamServerStatus,
   StreamServerState,
+  StreamServerStatus,
 } from "@/shared/types/ipc";
+import { ChildProcess, fork } from "node:child_process";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -43,15 +43,13 @@ export class StreamServerLifecycleManager implements StreamServerRepository {
         };
       }
 
-      return this.startChild(params);
+      return await this.startChild(params);
     } finally {
       lockRelease();
     }
   }
 
-  async stop(
-    params: StopStreamServerParams,
-  ): Promise<StreamServerResult> {
+  async stop(params: StopStreamServerParams): Promise<StreamServerResult> {
     const lockRelease = await this.acquireLock();
 
     try {
@@ -83,23 +81,20 @@ export class StreamServerLifecycleManager implements StreamServerRepository {
     return release!;
   }
 
-  private startChild(params: StartStreamServerRepositoryParams): Promise<StreamServerResult> {
+  private startChild(
+    params: StartStreamServerRepositoryParams,
+  ): Promise<StreamServerResult> {
     return new Promise((resolve) => {
       this.transition("starting");
 
       try {
         const childPath = path.join(__dirname, "streamParser.js");
-        const child = fork(childPath, [], {
-          stdio: "pipe",
-          env: {
-            ...process.env,
-          },
-        });
+        const child = fork(childPath);
 
         this.child = child;
 
         child.stdout?.on("data", (data: Buffer) => {
-          console.log(`[stream-server] ${data.toString().trim()}`);
+          console.log(`[child] ${data.toString().trim()}`);
         });
 
         child.stderr?.on("data", (data: Buffer) => {
@@ -119,6 +114,8 @@ export class StreamServerLifecycleManager implements StreamServerRepository {
           });
         }, 15000);
 
+        child.send({ type: "credentials", ...params });
+
         child.on("message", (msg: unknown) => {
           const message = String(msg);
 
@@ -135,8 +132,6 @@ export class StreamServerLifecycleManager implements StreamServerRepository {
             };
             this.transition("running");
 
-            child.send({ type: "credentials", ...params });
-
             resolve({
               ok: true,
               status: { ...this.currentStatus },
@@ -146,7 +141,8 @@ export class StreamServerLifecycleManager implements StreamServerRepository {
 
         child.on("exit", (code, signal) => {
           this.child = null;
-          const wasRunning = this.state === "running" || this.state === "starting";
+          const wasRunning =
+            this.state === "running" || this.state === "starting";
 
           if (wasRunning) {
             console.error(
@@ -244,24 +240,27 @@ export class StreamServerLifecycleManager implements StreamServerRepository {
 
       this.transition("stopping");
 
-      const killTimeout = setTimeout(() => {
-        console.warn(
-          "[stream-server] graceful stop timed out, force killing",
-        );
-        this.killChild(child);
-        this.transition("stopped");
-        this.currentStatus = {
-          ...this.currentStatus,
-          state: "stopped",
-          pid: undefined,
-          playlistId: undefined,
-        };
+      const killTimeout = setTimeout(
+        () => {
+          console.warn(
+            "[stream-server] graceful stop timed out, force killing",
+          );
+          this.killChild(child);
+          this.transition("stopped");
+          this.currentStatus = {
+            ...this.currentStatus,
+            state: "stopped",
+            pid: undefined,
+            playlistId: undefined,
+          };
 
-        resolve({
-          ok: true,
-          status: { ...this.currentStatus },
-        });
-      }, force ? 0 : 10000);
+          resolve({
+            ok: true,
+            status: { ...this.currentStatus },
+          });
+        },
+        force ? 0 : 10000,
+      );
 
       child.once("exit", () => {
         clearTimeout(killTimeout);
@@ -331,9 +330,7 @@ export class StreamServerLifecycleManager implements StreamServerRepository {
   private transition(newState: StreamServerState): void {
     const from = this.state;
     this.state = newState;
-    console.log(
-      `[stream-server] state: ${from} -> ${newState}`,
-    );
+    console.log(`[stream-server] state: ${from} -> ${newState}`);
   }
 
   forceStop(): void {
