@@ -53,10 +53,14 @@ describe("Validate credentials e2e", () => {
   it("if data is equal mocked success response", async () => {
     mock.onGet().reply(200, successResponse);
 
-    repository = new APICredentialRepository("server", "username", "pass");
+    repository = new APICredentialRepository();
     sut = new ValidateCredentialsUseCase(repository);
 
-    const { isValid } = await sut.execute();
+    const { isValid } = await sut.execute({
+      server: "server",
+      username: "username",
+      password: "pass",
+    });
 
     expect(isValid).toBe(true);
   });
@@ -70,7 +74,11 @@ describe("Validate credentials e2e", () => {
 
     mock.onGet().reply(notAuthorizedResponse.status, notAuthorizedResponse);
 
-    const { isValid, error } = await sut.execute();
+    const { isValid, error } = await sut.execute({
+      server: "server",
+      username: "username",
+      password: "pass",
+    });
 
     expect(isValid).toBe(false);
     expect(error).toBe(notAuthorizedResponse.data.error);
@@ -87,7 +95,11 @@ describe("Validate credentials e2e", () => {
       return Promise.reject(mockAxiosError);
     });
 
-    const { isValid, error } = await sut.execute();
+    const { isValid, error } = await sut.execute({
+      server: "server",
+      username: "username",
+      password: "pass",
+    });
 
     expect(isValid).toBe(false);
     expect(error).toBe("Invalid URL.");
@@ -97,7 +109,11 @@ describe("Validate credentials e2e", () => {
     const invalidData = { wrongField: "oops" };
     mock.onGet().reply(200, invalidData);
 
-    const { isValid, error } = await sut.execute();
+    const { isValid, error } = await sut.execute({
+      server: "server",
+      username: "username",
+      password: "pass",
+    });
 
     expect(isValid).toBe(false);
     expect(error).toBe("Service Unavailable");

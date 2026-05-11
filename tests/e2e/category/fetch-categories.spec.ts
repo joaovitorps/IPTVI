@@ -3,7 +3,7 @@ import { FetchCategoryUseCase } from "@/core/domain/use-cases/category/fetch-cat
 import axios from "axios";
 import AxiosMockAdapter from "axios-mock-adapter";
 
-describe("Fetch categories e2e", () => {
+describe("Get serie by id e2e", () => {
   let mock: AxiosMockAdapter;
 
   beforeAll(() => {

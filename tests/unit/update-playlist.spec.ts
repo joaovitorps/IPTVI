@@ -1,7 +1,6 @@
 import { UpdatePlaylistUseCase } from "@/core/domain/use-cases/playlist/update-playlist";
 import { makePlaylist } from "@tests/factories/make-playlist";
 import { InMemoryPlaylistRepository } from "@tests/repositories/in-memory-playlist-repository";
-import { beforeEach, describe, expect, it } from "vitest";
 
 describe("Update playlist use case", () => {
   let repository: InMemoryPlaylistRepository;

@@ -3,7 +3,6 @@ import { EntityNotFoundError } from "@/core/domain/use-cases/error/entity-not-fo
 import { GetPlaylistUseCase } from "@/core/domain/use-cases/playlist/get-playlist";
 import { makePlaylist } from "@tests/factories/make-playlist";
 import { InMemoryPlaylistRepository } from "@tests/repositories/in-memory-playlist-repository";
-import { beforeEach, describe, expect, it } from "vitest";
 
 describe("Get playlist use case", () => {
   let repository: InMemoryPlaylistRepository;

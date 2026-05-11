@@ -11,6 +11,7 @@ export default defineConfig([
     "postcss.config.mjs",
     "**/*.js",
     "src/@types/*.d.ts",
+    "**/.worktrees/",
   ]),
   {
     basePath: "./",

@@ -1,5 +1,4 @@
 import { Playlist } from "@/core/domain/entities/playlist";
-import { describe, expect, it } from "vitest";
 
 import { makePlaylist } from "../factories/make-playlist";
 

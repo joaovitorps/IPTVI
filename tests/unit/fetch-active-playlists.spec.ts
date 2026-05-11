@@ -2,7 +2,6 @@ import { Playlist } from "@/core/domain/entities/playlist";
 import { FetchActivePlaylistsUseCase } from "@/core/domain/use-cases/playlist/fetch-active-playlists";
 import { makePlaylist } from "@tests/factories/make-playlist";
 import { InMemoryPlaylistRepository } from "@tests/repositories/in-memory-playlist-repository";
-import { beforeEach, describe, expect, it } from "vitest";
 
 describe("Get active playlist use case", () => {
   let repository: InMemoryPlaylistRepository;
