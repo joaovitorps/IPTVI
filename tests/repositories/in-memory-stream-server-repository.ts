@@ -30,6 +30,12 @@ export class InMemoryStreamServerRepository implements StreamServerRepository {
       state: "running",
       pid: 123,
       playlistId: params.playlistId,
+      hlsPlaylist: `/hls/${params.playlistId}/master.m3u8`,
+      tracks: [
+        { id: 0, type: "video", name: "720p", bitrate: 3000 },
+        { id: 1, type: "video", name: "360p", bitrate: 1000 },
+        { id: 2, type: "audio", name: "English", lang: "eng", default: true },
+      ],
       startedAt: new Date().toISOString(),
     };
 

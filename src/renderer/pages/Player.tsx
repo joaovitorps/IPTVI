@@ -1,10 +1,14 @@
 import { EpisodeDTO, SerieDTO } from "@/shared/types/dto";
+import { HlsTrackInfo } from "@/shared/types/ipc";
 import {
+  HLSErrorEvent,
   MediaPlayer,
   MediaPlayerInstance,
   MediaProvider,
   Poster,
+  isHLSProvider,
 } from "@vidstack/react";
+import Hls from "hls.js";
 import {
   DefaultVideoLayout,
   defaultLayoutIcons,
@@ -12,7 +16,7 @@ import {
 import "@vidstack/react/player/styles/default/layouts/audio.css";
 import "@vidstack/react/player/styles/default/layouts/video.css";
 import "@vidstack/react/player/styles/default/theme.css";
-import { ArrowLeft, FastForward, Play } from "lucide-react";
+import { ArrowLeft, FastForward, Languages, Play } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router";
 
@@ -21,9 +25,6 @@ export const Player = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const playerRef = useRef<MediaPlayerInstance>(null);
-  const serverStarted = useRef(false);
-
-  const [streamBaseUrl, setStreamBaseUrl] = useState<string>("");
 
   const queryParams = new URLSearchParams(location.search);
   const seriesId = queryParams.get("seriesId");
@@ -36,14 +37,16 @@ export const Player = () => {
   const [showNextEpisodePrompt, setShowNextEpisodePrompt] = useState(false);
   const [showPoster, setShowPoster] = useState(true);
 
-  const buildStreamUrl = (id: string) => {
-    console.log(streamBaseUrl);
-    if (streamBaseUrl) {
-      return `${streamBaseUrl}/stream?streamId=${id}`;
-    }
+  const [hlsPlaylistUrl, setHlsPlaylistUrl] = useState<string | null>(null);
+  const [tracks, setTracks] = useState<HlsTrackInfo[]>([]);
+  const [isTranscoding, setIsTranscoding] = useState(true);
+  const [transcodingError, setTranscodingError] = useState<string | null>(null);
+  const [showTrackSelector, setShowTrackSelector] = useState(false);
+  const [activeAudioTrack, setActiveAudioTrack] = useState(0);
+  const [activeSubtitleTrack, setActiveSubtitleTrack] = useState(-1);
 
-    return `http://localhost:9876/stream?streamId=${id};`;
-  };
+  const audioTracks = tracks.filter((t) => t.type === "audio");
+  const subtitleTracks = tracks.filter((t) => t.type === "subtitle");
 
   const loadSerieData = useCallback(async () => {
     if (!seriesId || !streamId) return;
@@ -61,7 +64,6 @@ export const Player = () => {
       }
 
       const allEpisodes: EpisodeDTO[] = season.episodes;
-      // Find current episode and next episode
       let current: EpisodeDTO | null = null;
       let next: EpisodeDTO | null = null;
 
@@ -87,35 +89,50 @@ export const Player = () => {
     void loadSerieData();
   }, [loadSerieData]);
 
-  // Manage stream server lifecycle on mount/unmount
   useEffect(() => {
-    serverStarted.current = true;
+    let cancelled = false;
 
     async function start() {
-      await window.api.streamServer.start().then((result) => {
-        console.log("result", result);
-        if (result.ok) {
-          setStreamBaseUrl(result.status.baseUrl);
-        } else {
-          console.warn("[player] stream server start failed:", result.error);
-        }
+      const result = await window.api.streamServer.start({
+        streamId: streamId!,
       });
-    }
 
-    async function stop() {
-      serverStarted.current = false;
+      if (cancelled) return;
 
-      await window.api.streamServer.stop({ reason: "player-unmount" });
+      if (result.ok) {
+        const { baseUrl, hlsPlaylist: playlist, tracks: trackList } = result.status;
+
+        if (playlist) {
+          console.log(`${baseUrl}${playlist}`);
+          setHlsPlaylistUrl(`${baseUrl}${playlist}`);
+        }
+
+        if (trackList && trackList.length > 0) {
+          setTracks(trackList);
+          const defaultAudio = trackList.find(
+            (t) => t.default && t.type === "audio",
+          );
+          if (defaultAudio) {
+            setActiveAudioTrack(defaultAudio.id);
+          }
+        }
+
+        setIsTranscoding(false);
+      } else {
+        console.error(result.error?.message);
+        setTranscodingError("Failed to start stream");
+        setIsTranscoding(false);
+      }
     }
 
     void start();
 
-    return () => {
-      void stop();
+    return  () => {
+      cancelled = true;
+      void window.api.streamServer.stop({ reason: "player-unmount" });
     };
-  }, []);
+  }, [streamId]);
 
-  // Resume playback position
   const onCanPlay = () => {
     window.store
       .get("playbackPositions")
@@ -131,7 +148,31 @@ export const Player = () => {
       .catch(() => {});
   };
 
-  // Save playback position
+  const onHlsLibLoadStart = useCallback(() => {
+    const provider = playerRef.current?.provider;
+    if (isHLSProvider(provider)) {
+      provider.config = {
+        lowLatencyMode: false,
+        startPosition: 0.05,
+      };
+    }
+  }, []);
+
+  // const onHlsError = useCallback(
+  //   (event: HLSErrorEvent) => {
+  //     const error = event.detail;
+  //     if (
+  //       error.type === Hls.ErrorTypes.MEDIA_ERROR &&
+  //       !error.fatal &&
+  //       playerRef.current &&
+  //       playerRef.current.currentTime < 0.05
+  //     ) {
+  //       playerRef.current.currentTime = 0.05;
+  //     }
+  //   },
+  //   [],
+  // );
+
   useEffect(() => {
     const interval = setInterval(() => {
       if (!playerRef.current || playerRef.current.paused || !streamId) return;
@@ -197,7 +238,6 @@ export const Player = () => {
         setShowPoster(false);
       }
 
-      // Show next episode prompt in the last 30 seconds
       if (duration > 0 && duration - currentTime < 30 && nextEpisode) {
         setShowNextEpisodePrompt(true);
       } else {
@@ -206,10 +246,59 @@ export const Player = () => {
     }
   };
 
-  if (isLoading && seriesId) {
+  const handleAudioTrackChange = (track: HlsTrackInfo) => {
+    setActiveAudioTrack(track.id);
+    try {
+      (
+        playerRef.current as unknown as { changeAudioTrack: (index: number) => void }
+      )?.changeAudioTrack(track.id);
+    } catch {
+      // player API may not be available yet
+    }
+  };
+
+  const handleSubtitleTrackChange = (track: HlsTrackInfo | null) => {
+    const index = track ? track.id : -1;
+    setActiveSubtitleTrack(index);
+    try {
+      const mode = track ? "showing" : "hidden";
+      (
+        playerRef.current as unknown as {
+          changeTextTrackMode: (index: number, mode: string) => void;
+        }
+      )?.changeTextTrackMode(index >= 0 ? index : 0, mode);
+    } catch {
+      // player API may not be available yet
+    }
+  };
+
+  if (isLoading || isTranscoding) {
     return (
-      <div className="h-screen w-full bg-black flex items-center justify-center">
+      <div className="h-screen w-full bg-black flex flex-col items-center justify-center gap-4">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500"></div>
+        <p className="text-gray-400 text-sm">
+          {isTranscoding ? "Transcoding stream..." : "Loading..."}
+        </p>
+        {isTranscoding && (
+          <p className="text-gray-600 text-xs">
+            Please wait while the stream is prepared (this may take 5-15 seconds)
+          </p>
+        )}
+      </div>
+    );
+  }
+
+  if (transcodingError) {
+    return (
+      <div className="h-screen w-full bg-black flex flex-col items-center justify-center gap-4">
+        <p className="text-red-400 text-lg font-bold">Stream Error</p>
+        <p className="text-gray-400 text-sm">{transcodingError}</p>
+        <button
+          onClick={() => void navigate(-1)}
+          className="mt-4 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors"
+        >
+          Go Back
+        </button>
       </div>
     );
   }
@@ -219,10 +308,12 @@ export const Player = () => {
       <MediaPlayer
         ref={playerRef}
         title={currentEpisode?.title || "Video Player"}
-        src={{ src: buildStreamUrl(streamId!), type: "video/mp4" }}
+        src={hlsPlaylistUrl || undefined}
         onCanPlay={onCanPlay}
         onEnded={onEnd}
         onTimeUpdate={onTimeUpdate}
+        onHlsLibLoadStart={onHlsLibLoadStart}
+        // onHlsError={onHlsError}
         className="w-full h-full"
         autoPlay
       >
@@ -237,7 +328,6 @@ export const Player = () => {
 
         <DefaultVideoLayout icons={defaultLayoutIcons} />
 
-        {/* Top Bar Overlay */}
         <div className="absolute top-0 left-0 right-0 p-8 bg-linear-to-b from-black/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity z-10">
           <div className="flex items-center gap-4">
             <button
@@ -263,7 +353,86 @@ export const Player = () => {
           </div>
         </div>
 
-        {/* Next Episode Prompt */}
+        {console.log(audioTracks)}
+
+        {(audioTracks.length > 1 || subtitleTracks.length > 0) && (
+          <div className="absolute top-20 right-8 z-20">
+            <button
+              onClick={() => setShowTrackSelector(!showTrackSelector)}
+              className="p-2 bg-black/60 hover:bg-black/80 rounded-full transition-colors text-white"
+              title="Audio & Subtitles"
+            >
+              <Languages size={20} />
+            </button>
+
+            {showTrackSelector && (
+              <div className="absolute right-0 mt-2 w-56 bg-gray-900/95 border border-gray-700 rounded-xl shadow-2xl p-3 backdrop-blur-sm">
+                {audioTracks.length > 1 && (
+                  <div className="mb-3">
+                    <p className="text-xs text-gray-400 uppercase tracking-wider font-bold mb-2">
+                      Audio
+                    </p>
+                    {audioTracks.map((track) => (
+                      <button
+                        key={track.id}
+                        onClick={() => handleAudioTrackChange(track)}
+                        className={`w-full text-left px-3 py-1.5 rounded-lg text-sm transition-colors ${
+                          activeAudioTrack === track.id
+                            ? "bg-purple-600 text-white"
+                            : "text-gray-300 hover:bg-white/10"
+                        }`}
+                      >
+                        {track.name}
+                        {track.lang && (
+                          <span className="text-xs ml-2 opacity-60">
+                            {track.lang}
+                          </span>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {subtitleTracks.length > 0 && (
+                  <div>
+                    <p className="text-xs text-gray-400 uppercase tracking-wider font-bold mb-2">
+                      Subtitles
+                    </p>
+                    <button
+                      onClick={() => handleSubtitleTrackChange(null)}
+                      className={`w-full text-left px-3 py-1.5 rounded-lg text-sm transition-colors ${
+                        activeSubtitleTrack === -1
+                          ? "bg-purple-600 text-white"
+                          : "text-gray-300 hover:bg-white/10"
+                      }`}
+                    >
+                      Off
+                    </button>
+                    {subtitleTracks.map((track) => (
+                      <button
+                        key={track.id}
+                        onClick={() => handleSubtitleTrackChange(track)}
+                        className={`w-full text-left px-3 py-1.5 rounded-lg text-sm transition-colors ${
+                          activeSubtitleTrack === track.id
+                            ? "bg-purple-600 text-white"
+                            : "text-gray-300 hover:bg-white/10"
+                        }`}
+                      >
+                        {track.name}
+                        {track.lang && (
+                          <span className="text-xs ml-2 opacity-60">
+                            {track.lang}
+                          </span>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
         {showNextEpisodePrompt && nextEpisode && (
           <div className="absolute bottom-24 right-8 bg-gray-900/90 border border-purple-500/50 p-4 rounded-xl shadow-2xl z-20 animate-in slide-in-from-right-full">
             <div className="flex items-center gap-4">

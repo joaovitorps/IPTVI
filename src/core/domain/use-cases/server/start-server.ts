@@ -13,6 +13,7 @@ import {
 interface StartServerUseCaseParams {
   host?: string;
   port?: number;
+  streamId?: string;
 }
 
 interface StartServerUseCaseReturn {
@@ -30,8 +31,11 @@ export class StartServerUseCase {
   async execute({
     host,
     port,
+    streamId,
   }: StartServerUseCaseParams): Promise<StartServerUseCaseReturn> {
     const activePlaylists = await this.playlistRepository.fetchActives();
+
+    console.log(activePlaylists);
 
     if (activePlaylists.length === 0) {
       return {
@@ -55,6 +59,7 @@ export class StartServerUseCase {
       password: playlist.password,
       host,
       port,
+      streamId,
     };
 
     const result = await this.streamServerRepository.start(params);

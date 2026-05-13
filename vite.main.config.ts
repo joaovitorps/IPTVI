@@ -19,7 +19,13 @@ export default defineConfig({
     },
     rollupOptions: {
       // Ensure external dependencies aren't bundled into the JS
-      external: ["electron", "node:child_process", "electron-store"],
+      external: [
+        "electron",
+        "node:child_process",
+        "electron-store",
+        "ffmpeg-static",
+        "@ffprobe-installer/ffprobe",
+      ],
     },
   },
 });

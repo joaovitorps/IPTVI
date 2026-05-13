@@ -44,11 +44,34 @@ master.m3u8  ← entry point, lists all available variant streams
 4. Player fetches segments sequentially, stitching them seamlessly
 5. **Switching** (quality, audio, subs) happens at segment boundaries — instant since all streams are time-aligned
 
+### Track Probing (ffprobe)
+
+Before spawning ffmpeg, the child process runs `ffprobe` to discover available streams in the upstream MKV:
+
+```bash
+ffprobe -v quiet -print_format json -show_streams <upstream-mkv-url>
+```
+
+The JSON output includes all video, audio, and subtitle streams with their indices, codecs, languages, resolution, etc. The ffmpeg arguments are **built dynamically** from this output — never hardcoded. This handles edge cases like:
+- MKVs with the video track at a non-zero stream index (chapters, attachments first)
+- Variable number of audio tracks (1 to N)
+- Missing subtitle tracks (no subs at all)
+- Non-standard stream ordering
+
+The track info (language labels from `tags.language`, resolution, etc.) is also returned to the frontend so the UI can display track names correctly.
+
+If `ffprobe` fails (network issue, invalid URL, etc.), the stream fails fast instead of hanging on ffmpeg.
+
 ## What ffmpeg Does
 
 The backend (`stream-parser.ts`) spawns ffmpeg as a child subprocess:
 
 ```bash
+# Arguments are built dynamically from ffprobe output.
+# Shown below is an example for an MKV with:
+#   video: 1 track
+#   audio: 2 tracks (English + Portuguese)
+#   subs:  1 track (English)
 ffmpeg -i <upstream-mkv-url>
   -map 0:v:0 -c:v libx264 -b:v:0 3000k -s:v:0 1280x720 \
   -map 0:v:0 -c:v libx264 -b:v:1 1000k -s:v:1 640x360 \
@@ -105,14 +128,14 @@ ffmpeg -i <upstream-mkv-url>
 4. Child process:
    a. Reads credentials (existing flow)
    b. Builds upstream MKV URL (existing flow)
-   c. Spawns ffmpeg with the URL and output config
-   d. Starts a new HTTP server to serve HLS segments
+    c. Spawns ffmpeg with the URL and output config
+    d. Replaces the HTTP request handler to serve HLS segments statically from disk (same server, new handler)
 5. ffmpeg:
    a. Fetches MKV from upstream
    b. Decodes video frames → re-encodes at 720p + 360p
-   c. Extracts each audio track → separate AAC stream
-   d. Converts subtitles → WebVTT
-   e. Writes segments + playlists to /tmp/hls/<id>/
+   c. Extracts each audio track → separate AAC stream (Advanced Audio Codec — universal browser support, standard for HLS audio)
+   d. Converts subtitles → WebVTT (only subtitle format HTML5 video/hls.js supports natively; MKV's PGS/SRT won't render in browser)
+   e. Writes segments + playlists as static files to /tmp/hls/<id>/ — no piping, files are served as they appear on disk
 6. After first segment is produced (~6s), backend signals "ready"
 7. Response to frontend:
    {
@@ -206,7 +229,16 @@ ffmpeg is NOT an npm package. Options:
 | **Download at install** | — | Smaller repo | Postinstall step, network dependency |
 | **System ffmpeg** | — | No bundle cost | Fragile, user must install manually |
 
-Recommendation: `ffmpeg-static` — it's the standard approach for Electron apps that need ffmpeg.
+Recommendation: **`ffmpeg-static`** — it's the standard approach for Electron apps that need ffmpeg.
+
+**Why not "download at install":** The app is distributed via Electron Forge installers (squirrel/deb/rpm/zip). A postinstall script runs during `npm install` for development, but **end users never run npm install** — they install the packaged app. A first-launch download would add latency and require network. `ffmpeg-static` bundles the binary at build time and ships it inside the installer. The path is resolved at runtime via:
+
+```typescript
+import ffmpegPath from "ffmpeg-static";
+// ffmpegPath === "/path/to/unpacked/ffmpeg"  (within asar.unpacked)
+```
+
+`ffprobe-static` (or the `@ffmpeg-static/ffprobe` package) provides the companion `ffprobe` binary the same way. Both binaries need to be in `asar.unpacked` in the Electron Forge config.
 
 ## Startup Latency
 
@@ -249,24 +281,29 @@ The current architecture already has a shutdown mechanism — it would be extend
 
 ## Implementation Order (High-Level)
 
-1. Install `hls.js` and `ffmpeg-static` npm dependencies
-2. Refactor `stream-parser.ts` to spawn ffmpeg instead of acting as byte-range proxy
-3. Serve the HLS output directory via a new HTTP route handler
-4. Extend server start response type to include `hlsPlaylist` URL and `tracks` array
-5. Update `Player.tsx` to:
-   - Load master.m3u8 via hls.js (or Vidstack HLS provider)
-   - Show loading state during ffmpeg startup
-   - Listen for audio/subtitle track events
+1. Install `hls.js`, `ffmpeg-static`, and `ffprobe-static` npm dependencies
+2. Configure Electron Forge to unpack ffmpeg/ffprobe binaries into `asar.unpacked`
+3. Add ffprobe probing logic to detect available tracks before ffmpeg spawn
+4. Refactor `stream-parser.ts` to:
+   - Run ffprobe on the upstream MKV URL to discover tracks
+   - Build ffmpeg args dynamically from probe output
+   - Spawn ffmpeg with those args
+   - Replace the byte-range proxy handler with a static file server serving `/tmp/hls/<id>/`
+5. Extend server start response type to include `hlsPlaylist` URL and `tracks` array
+6. Update `Player.tsx` to:
+   - Load master.m3u8 via Vidstack HLS provider (wraps hls.js) — confirmed compatible with `@vidstack/react` v1.12.13
+   - Show "Transcoding..." loading state during ffmpeg startup (~5-15s)
+   - Listen for audio/subtitle track events from hls.js
    - Build a track selector UI overlay
-   - Show available tracks when server responds
    - Allow mid-playback switching
-6. Implement cleanup: kill ffmpeg + delete segments on unmount/error
-7. Handle race conditions: what if user navigates before ffmpeg finishes startup?
-8. Profile CPU/memory usage for concurrent streams
+7. Implement cleanup: kill ffmpeg + delete segments on unmount/error
+8. Handle race conditions: what if user navigates before ffmpeg finishes startup?
+9. Profile CPU/memory usage (single stream expected, but verify headroom)
 
-## Open Questions
+## Decisions
 
-1. **How many concurrent streams are expected?** At ~40% CPU per stream, a dual-core machine tops out at ~3-4 simultaneous transcodes.
-2. **Do we need more quality variants?** 720p + 360p is a good starting point. 1080p and 480p could be added as a premium feature.
-3. **Should we cache segments across plays of the same content?** If same video is watched multiple times, cached segments would skip the startup delay entirely.
-4. **Vidstack HLS provider compatibility** — needs verification with `@vidstack/react` v1.12.13. Fallback: use hls.js directly with a `<video>` element.
+1. **Concurrent streams:** 1 (desktop app, single user). ~40% CPU per stream is acceptable headroom.
+2. **Quality variants:** 720p + 360p to start. 1080p and 480p deferred as future premium features.
+3. **Segment caching:** Yes — cache segments across plays of same content to skip startup delay on re-watch.
+4. **Vidstack HLS provider:** Confirmed compatible with `@vidstack/react` v1.12.13. The `HlsProvider` wraps hls.js internally. No fallback needed.
+5. **ffmpeg bundling:** `ffmpeg-static` with `ffprobe-static`, unpacked via Electron Forge config.

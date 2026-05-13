@@ -6,7 +6,11 @@ import type { ForgeConfig } from "@electron-forge/shared-types";
 
 const config: ForgeConfig = {
   packagerConfig: {
-    asar: true, // check
+    asar: true,
+    asarUnpack: [
+      "node_modules/ffmpeg-static/**",
+      "node_modules/@ffprobe-installer/**",
+    ],
   },
   rebuildConfig: {},
   makers: [

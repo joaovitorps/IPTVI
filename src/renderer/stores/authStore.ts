@@ -1,4 +1,4 @@
-import { Playlist } from "@/core/domain/entities/playlist";
+import { PlaylistDTO } from "@/shared/types";
 import { create } from "zustand";
 
 const initialState = {
@@ -11,7 +11,7 @@ const initialState = {
 
 interface AuthState {
   isCurrentPlaylist: number;
-  playlists: Playlist[];
+  playlists: PlaylistDTO[];
   isAuthenticated: boolean;
   loading: boolean;
   error: boolean;

@@ -50,4 +50,45 @@ describe("Start server use case", () => {
       port: 9876,
     });
   });
+
+  it("should pass streamId to the repository", async () => {
+    const playlist = Playlist.create({
+      name: "Main",
+      server: "server.test",
+      username: "u",
+      password: "p",
+      isActive: true,
+    });
+
+    playlistRepository.playlists.push(playlist);
+
+    const result = await sut.execute({
+      streamId: "12345",
+    });
+
+    expect(result.ok).toBe(true);
+    expect(streamServerRepository.startParams?.streamId).toBe("12345");
+  });
+
+  it("should return hls playlist in response on success", async () => {
+    const playlist = Playlist.create({
+      name: "Main",
+      server: "server.test",
+      username: "u",
+      password: "p",
+      isActive: true,
+    });
+
+    playlistRepository.playlists.push(playlist);
+
+    const result = await sut.execute({});
+
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.status.hlsPlaylist).toBeDefined();
+      expect(result.status.hlsPlaylist).toContain("master.m3u8");
+      expect(result.status.tracks).toBeDefined();
+      expect(result.status.tracks!.length).toBeGreaterThan(0);
+    }
+  });
 });

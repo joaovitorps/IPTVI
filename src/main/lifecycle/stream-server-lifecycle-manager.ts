@@ -3,6 +3,7 @@ import {
   StreamServerRepository,
 } from "@/core/domain/repositories/stream-server-repository";
 import {
+  HlsTrackInfo,
   StopStreamServerParams,
   StreamServerResult,
   StreamServerState,
@@ -60,7 +61,7 @@ export class StreamServerLifecycleManager implements StreamServerRepository {
         };
       }
 
-      return this.stopChild(params.force);
+      return await this.stopChild(params.force);
     } finally {
       lockRelease();
     }
@@ -117,8 +118,63 @@ export class StreamServerLifecycleManager implements StreamServerRepository {
         child.send({ type: "credentials", ...params });
 
         child.on("message", (msg: unknown) => {
-          const message = String(msg);
+          if (
+            typeof msg === "object" &&
+            msg !== null &&
+            "type" in (msg as Record<string, unknown>)
+          ) {
+            const data = msg as Record<string, unknown>;
+            clearTimeout(readyTimeout);
 
+            if (data.type === "ready") {
+              this.currentPlaylistId = params.playlistId;
+              this.currentStatus = {
+                ...this.currentStatus,
+                state: "running",
+                pid: child.pid ?? undefined,
+                playlistId: params.playlistId,
+                startedAt: new Date().toISOString(),
+                lastError: undefined,
+                hlsPlaylist: data.hlsPlaylist as string | undefined,
+                tracks: data.tracks as HlsTrackInfo[] | undefined,
+              };
+              this.transition("running");
+
+              resolve({
+                ok: true,
+                status: { ...this.currentStatus },
+              });
+              return;
+            }
+
+            if (data.type === "error") {
+              const errorCode = "SPAWN_FAILED";
+              const errorMessage =
+                (data.message as string) || "Child process error";
+
+              this.transition("error");
+              this.currentStatus = {
+                ...this.currentStatus,
+                state: "error",
+                lastError: {
+                  code: "SPAWN_FAILED",
+                  message: errorMessage,
+                },
+              };
+
+              resolve({
+                ok: false,
+                status: { ...this.currentStatus },
+                error: {
+                  code: errorCode,
+                  message: errorMessage,
+                },
+              });
+              return;
+            }
+          }
+
+          const message = String(msg);
           if (message.startsWith("PID ")) {
             clearTimeout(readyTimeout);
             this.currentPlaylistId = params.playlistId;

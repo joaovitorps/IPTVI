@@ -11,6 +11,7 @@ export interface StartStreamServerRepositoryParams {
   password: string;
   host?: string;
   port?: number;
+  streamId?: string;
 }
 
 export interface StreamServerRepository {

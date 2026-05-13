@@ -18,6 +18,15 @@ export type StreamServerState =
   | "stopping"
   | "error";
 
+export interface HlsTrackInfo {
+  id: number;
+  type: "video" | "audio" | "subtitle";
+  name: string;
+  lang?: string;
+  default?: boolean;
+  bitrate?: number;
+}
+
 export type StreamServerErrorCode =
   | "ALREADY_RUNNING"
   | "NOT_RUNNING"
@@ -26,6 +35,8 @@ export type StreamServerErrorCode =
   | "START_TIMEOUT"
   | "STOP_TIMEOUT"
   | "UNEXPECTED_EXIT"
+  | "FFPROBE_ERROR"
+  | "FFMPEG_ERROR"
   | "INTERNAL";
 
 export interface StreamServerError {
@@ -40,8 +51,16 @@ export interface StreamServerStatus {
   port: number;
   baseUrl: string;
   playlistId?: string;
+  hlsPlaylist?: string;
+  tracks?: HlsTrackInfo[];
   startedAt?: string;
   lastError?: StreamServerError;
+}
+
+export interface StartStreamServerParams {
+  host?: number;
+  port?: number;
+  streamId?: string;
 }
 
 export interface StartStreamServerParams {

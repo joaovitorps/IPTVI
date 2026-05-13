@@ -34,6 +34,7 @@ export const streamServerLifecycleHandlers = (ipcMain: IpcMain) => {
         const { ok, status, error } = await startServerUseCase.execute({
           host: params?.host,
           port: params?.port,
+          streamId: params?.streamId,
         });
 
         if (ok) {
