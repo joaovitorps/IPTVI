@@ -31,9 +31,22 @@ describe("FFmpegArgsBuilder", () => {
     expect(result.args).toContain("-s:v:1");
     expect(result.args).toContain("640x360");
 
+    expect(result.args).toContain("0:a:0");
     expect(result.args).toContain("0:a:1");
 
-    expect(result.args).toContain("0:s:3");
+    expect(result.args).toContain("0:s:0");
+
+    expect(result.args).toContain("-c:s");
+    expect(result.args).toContain("webvtt");
+
+    expect(result.args).toContain("-var_stream_map");
+    const varMapIdx = result.args.indexOf("-var_stream_map");
+    const varMapVal = result.args[varMapIdx + 1];
+    expect(varMapVal).toContain("a:0,agroup:aud,name:English,language:eng,default:yes");
+    expect(varMapVal).toContain("a:1,agroup:aud,name:Portuguese,language:por,default:no");
+    expect(varMapVal).toContain("s:0,sgroup:subs,name:Subtitle 0,language:eng");
+    expect(varMapVal).toContain("v:0,agroup:aud,s:0,sgroup:subs");
+    expect(varMapVal).toContain("v:1,agroup:aud");
 
     expect(result.args).toContain("-f");
     expect(result.args).toContain("hls");
@@ -152,9 +165,18 @@ describe("FFmpegArgsBuilder", () => {
 
     const subtitleTracks = result.tracks.filter((t) => t.type === "subtitle");
     expect(subtitleTracks).toHaveLength(2);
+    expect(result.tracks).toHaveLength(5);
 
-    expect(result.args).toContain("0:s:2");
-    expect(result.args).toContain("0:s:3");
+    expect(result.args).toContain("0:s:0");
+    expect(result.args).toContain("0:s:1");
+
+    expect(result.args).toContain("-var_stream_map");
+    const varMapIdx = result.args.indexOf("-var_stream_map");
+    const varMapVal = result.args[varMapIdx + 1];
+    expect(varMapVal).toContain("s:0,sgroup:subs,name:Subtitle 0,language:eng");
+    expect(varMapVal).toContain("s:1,sgroup:subs,name:Subtitle 1,language:por");
+    expect(varMapVal).toContain("v:0,agroup:aud,s:0,sgroup:subs");
+    expect(varMapVal).toContain("v:1,agroup:aud,s:1,sgroup:subs");
   });
 
   it("should use non-zero stream indices correctly", () => {
@@ -168,8 +190,8 @@ describe("FFmpegArgsBuilder", () => {
 
     const result = buildFfmpegArgs(probe, "http://example.com/video.mkv", "/tmp/hls/test");
 
-    expect(result.args).toContain("0:v:1");
-    expect(result.args).toContain("0:a:2");
+    expect(result.args).toContain("0:v:0");
+    expect(result.args).toContain("0:a:0");
   });
 
   it("should throw when no video streams exist", () => {

@@ -51,10 +51,11 @@ function sanitizeVarStreamToken(value: string): string {
 
 function buildVarStreamMapParts(
   audioStreams: { label: string; lang: string; default: boolean }[],
-  subtitleOutputCount: number,
+  subtitleStreams: { label: string; lang: string }[],
 ): string[] {
   const parts: string[] = [];
   const hasAudio = audioStreams.length > 0;
+  const subtitleCount = subtitleStreams.length;
 
   for (let i = 0; i < audioStreams.length; i++) {
     const { label, lang, default: isDefault } = audioStreams[i];
@@ -65,22 +66,23 @@ function buildVarStreamMapParts(
     );
   }
 
-  if (hasAudio) {
-    if (subtitleOutputCount === 0) {
-      parts.push("v:0,agroup:aud", "v:1,agroup:aud");
-    } else if (subtitleOutputCount === 1) {
-      parts.push("v:0,agroup:aud,s:0,sgroup:subs", "v:1,agroup:aud");
-    } else {
-      parts.push("v:0,agroup:aud,s:0,sgroup:subs", "v:1,agroup:aud,s:1,sgroup:subs");
-    }
-  } else if (subtitleOutputCount === 0) {
-    parts.push("v:0", "v:1");
-  } else if (subtitleOutputCount === 1) {
-    parts.push("v:0,s:0,sgroup:subs", "v:1");
-  } else {
-    parts.push("v:0,s:0,sgroup:subs", "v:1,s:1,sgroup:subs");
+  for (let j = 0; j < subtitleStreams.length; j++) {
+    const { label, lang } = subtitleStreams[j];
+    const name = sanitizeVarStreamToken(label);
+    const language = sanitizeVarStreamToken(lang);
+    parts.push(`s:${j},sgroup:subs,name:${name},language:${language}`);
   }
 
+  const vs0 = ["v:0", "v:1"];
+  if (hasAudio) {
+    vs0[0] += ",agroup:aud";
+    vs0[1] += ",agroup:aud";
+  }
+  for (let j = 0; j < subtitleCount; j++) {
+    vs0[j % 2] += `,s:${j},sgroup:subs`;
+  }
+
+  parts.push(vs0[0], vs0[1]);
   return parts;
 }
 
@@ -165,7 +167,7 @@ export function buildFfmpegArgs(
   }
 
   const mappedSubtitleIndices = packagableSubtitleIndices.slice(0, MAX_HLS_SUBTITLE_RENDITIONS);
-  const subtitleOutputCount = mappedSubtitleIndices.length;
+  const subtitleMeta: { label: string; lang: string }[] = [];
 
   for (const i of mappedSubtitleIndices) {
     const stream = subtitleStreams[i];
@@ -177,6 +179,8 @@ export function buildFfmpegArgs(
       "-c:s", "webvtt",
     );
 
+    subtitleMeta.push({ label, lang });
+
     tracks.push({
       id: nextId++,
       type: "subtitle",
@@ -185,7 +189,7 @@ export function buildFfmpegArgs(
     });
   }
 
-  const varMapParts = buildVarStreamMapParts(audioMeta, subtitleOutputCount);
+  const varMapParts = buildVarStreamMapParts(audioMeta, subtitleMeta);
 
   args.push(
     "-f", "hls",
