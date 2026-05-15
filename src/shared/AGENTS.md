@@ -24,6 +24,24 @@ All DTOs (Data Transfer Objects) in this project must follow these architectural
 - Name DTO interfaces with a `DTO` suffix: `CategoryDTO`, `SerieDTO`, etc.
 - Export all DTO interfaces.
 
+## TypeScript Conventions
+
+### Array Types
+
+Use `T[]` instead of `Array<T>`.
+
+### ✅ Correct
+
+```ts
+type Tracks = HlsTrackInfo[];
+```
+
+### ❌ Incorrect
+
+```ts
+type Tracks = Array<HlsTrackInfo>;
+```
+
 ---
 
 ### Implementation Example
