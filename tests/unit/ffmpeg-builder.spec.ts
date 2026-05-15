@@ -197,6 +197,23 @@ describe("FFmpegArgsBuilder", () => {
     expect(result.args).toContain("/tmp/hls/my-stream/stream_%v.m3u8");
   });
 
+  it("should skip bitmap subtitle codecs like PGS and DVD subtitle", () => {
+    const probe: FFprobeResult = {
+      streams: [
+        { index: 0, codec_type: "video", codec_name: "h264" },
+        { index: 1, codec_type: "audio", codec_name: "aac" },
+        { index: 2, codec_type: "subtitle", codec_name: "hdmv_pgs_subtitle", tags: { language: "eng" } },
+        { index: 3, codec_type: "subtitle", codec_name: "dvd_subtitle", tags: { language: "por" } },
+      ],
+    };
+
+    const result = buildFfmpegArgs(probe, "http://example.com/video.mkv", "/tmp/hls/test");
+
+    const subtitleTracks = result.tracks.filter((t) => t.type === "subtitle");
+    expect(subtitleTracks).toHaveLength(0);
+    expect(result.args.filter((a) => a.startsWith("0:s:")).length).toBe(0);
+  });
+
   it("should produce deterministic args for same input", () => {
     const probe: FFprobeResult = {
       streams: [
