@@ -1,14 +1,12 @@
 import { EpisodeDTO, SerieDTO } from "@/shared/types/dto";
 import { HlsTrackInfo } from "@/shared/types/ipc";
 import {
-  HLSErrorEvent,
   MediaPlayer,
   MediaPlayerInstance,
   MediaProvider,
   Poster,
   isHLSProvider,
 } from "@vidstack/react";
-import Hls from "hls.js";
 import {
   DefaultVideoLayout,
   defaultLayoutIcons,
@@ -83,7 +81,7 @@ export const Player = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [seriesId, streamId]);
+  }, [seriesId, seasonNumber, streamId]);
 
   useEffect(() => {
     void loadSerieData();
@@ -127,7 +125,7 @@ export const Player = () => {
 
     void start();
 
-    return  () => {
+    return () => {
       cancelled = true;
       void window.api.streamServer.stop({ reason: "player-unmount" });
     };
@@ -248,25 +246,60 @@ export const Player = () => {
 
   const handleAudioTrackChange = (track: HlsTrackInfo) => {
     setActiveAudioTrack(track.id);
+
+    const audioIndex = audioTracks.findIndex((t) => t.id === track.id);
+    if (audioIndex < 0) return;
+
     try {
-      (
-        playerRef.current as unknown as { changeAudioTrack: (index: number) => void }
-      )?.changeAudioTrack(track.id);
+      const player = playerRef.current as unknown as {
+        audioTracks?: { selected: boolean }[];
+      };
+
+      const list = player?.audioTracks;
+      if (list?.[audioIndex]) {
+        list[audioIndex].selected = true;
+      }
     } catch {
       // player API may not be available yet
     }
   };
 
   const handleSubtitleTrackChange = (track: HlsTrackInfo | null) => {
-    const index = track ? track.id : -1;
-    setActiveSubtitleTrack(index);
+    setActiveSubtitleTrack(track ? track.id : -1);
+
     try {
-      const mode = track ? "showing" : "hidden";
-      (
-        playerRef.current as unknown as {
-          changeTextTrackMode: (index: number, mode: string) => void;
-        }
-      )?.changeTextTrackMode(index >= 0 ? index : 0, mode);
+      const player = playerRef.current as unknown as {
+        textTracks?: Iterable<{
+          kind?: string;
+          label?: string;
+          language?: string;
+          mode?: string;
+        }>;
+      };
+
+      const allTextTracks = player?.textTracks ? Array.from(player.textTracks) : [];
+      const captionTracks = allTextTracks.filter(
+        (t) => t.kind === "subtitles" || t.kind === "captions",
+      );
+
+      if (!track) {
+        for (const t of captionTracks) t.mode = "disabled";
+        return;
+      }
+
+      const subtitleIndex = subtitleTracks.findIndex((t) => t.id === track.id);
+      if (subtitleIndex < 0) return;
+
+      const preferred =
+        captionTracks[subtitleIndex] ??
+        captionTracks.find(
+          (t) =>
+            (track.lang ? t.language === track.lang : true) && t.label === track.name,
+        );
+
+      if (preferred) {
+        preferred.mode = "showing";
+      }
     } catch {
       // player API may not be available yet
     }
@@ -294,6 +327,7 @@ export const Player = () => {
         <p className="text-red-400 text-lg font-bold">Stream Error</p>
         <p className="text-gray-400 text-sm">{transcodingError}</p>
         <button
+          type="button"
           onClick={() => void navigate(-1)}
           className="mt-4 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors"
         >
@@ -335,6 +369,7 @@ export const Player = () => {
                 void window.api.streamServer.stop({ reason: "user-back" });
                 void navigate(-1);
               }}
+              type="button"
               className="p-2 hover:bg-white/20 rounded-full transition-colors text-white"
             >
               <ArrowLeft size={24} />
@@ -353,11 +388,10 @@ export const Player = () => {
           </div>
         </div>
 
-        {console.log(audioTracks)}
-
         {(audioTracks.length > 1 || subtitleTracks.length > 0) && (
           <div className="absolute top-20 right-8 z-20">
             <button
+              type="button"
               onClick={() => setShowTrackSelector(!showTrackSelector)}
               className="p-2 bg-black/60 hover:bg-black/80 rounded-full transition-colors text-white"
               title="Audio & Subtitles"
@@ -375,6 +409,7 @@ export const Player = () => {
                     {audioTracks.map((track) => (
                       <button
                         key={track.id}
+                        type="button"
                         onClick={() => handleAudioTrackChange(track)}
                         className={`w-full text-left px-3 py-1.5 rounded-lg text-sm transition-colors ${
                           activeAudioTrack === track.id
@@ -399,6 +434,7 @@ export const Player = () => {
                       Subtitles
                     </p>
                     <button
+                      type="button"
                       onClick={() => handleSubtitleTrackChange(null)}
                       className={`w-full text-left px-3 py-1.5 rounded-lg text-sm transition-colors ${
                         activeSubtitleTrack === -1
@@ -411,6 +447,7 @@ export const Player = () => {
                     {subtitleTracks.map((track) => (
                       <button
                         key={track.id}
+                        type="button"
                         onClick={() => handleSubtitleTrackChange(track)}
                         className={`w-full text-left px-3 py-1.5 rounded-lg text-sm transition-colors ${
                           activeSubtitleTrack === track.id
@@ -457,6 +494,7 @@ export const Player = () => {
                   {nextEpisode.title}
                 </h3>
                 <button
+                  type="button"
                   onClick={handleNextEpisode}
                   className="mt-2 flex items-center gap-2 bg-purple-600 hover:bg-purple-700 text-white text-xs px-3 py-1.5 rounded-lg font-bold transition-colors"
                 >
