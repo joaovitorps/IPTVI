@@ -1,5 +1,4 @@
 import { EpisodeDTO, SerieDTO } from "@/shared/types/dto";
-import { HlsTrackInfo } from "@/shared/types/ipc";
 import {
   MediaPlayer,
   MediaPlayerInstance,
@@ -36,15 +35,80 @@ export const Player = () => {
   const [showPoster, setShowPoster] = useState(true);
 
   const [hlsPlaylistUrl, setHlsPlaylistUrl] = useState<string | null>(null);
-  const [tracks, setTracks] = useState<HlsTrackInfo[]>([]);
   const [isTranscoding, setIsTranscoding] = useState(true);
   const [transcodingError, setTranscodingError] = useState<string | null>(null);
   const [showTrackSelector, setShowTrackSelector] = useState(false);
   const [activeAudioTrack, setActiveAudioTrack] = useState(0);
   const [activeSubtitleTrack, setActiveSubtitleTrack] = useState(-1);
 
-  const audioTracks = tracks.filter((t) => t.type === "audio");
-  const subtitleTracks = tracks.filter((t) => t.type === "subtitle");
+  type PlayerAudioOption = {
+    id: string;
+    label: string;
+    lang?: string;
+    index: number;
+  };
+  type PlayerSubtitleOption = {
+    id: string;
+    label: string;
+    lang?: string;
+    index: number;
+  };
+
+  const [playerAudioOptions, setPlayerAudioOptions] = useState<
+    PlayerAudioOption[]
+  >([]);
+  const [playerSubtitleOptions, setPlayerSubtitleOptions] = useState<
+    PlayerSubtitleOption[]
+  >([]);
+
+  const syncTracksFromPlayer = useCallback(() => {
+    const player = playerRef.current as unknown as {
+      audioTracks?: {
+        id: string;
+        label: string;
+        language: string;
+        kind: string;
+        selected: boolean;
+      }[];
+      textTracks?: {
+        id: string;
+        label: string;
+        language: string;
+        kind: string;
+        mode: string;
+      }[];
+    };
+    if (!player) return;
+
+    const audioList = player.audioTracks ?? [];
+    setPlayerAudioOptions(
+      audioList.map((t, idx) => ({
+        id: t.id ?? String(idx),
+        label: t.label || t.language || `Track ${idx + 1}`,
+        lang: t.language,
+        index: idx,
+      })),
+    );
+
+    const textList = player.textTracks ?? [];
+    const subs = textList.filter(
+      (t) => t.kind === "subtitles" || t.kind === "captions",
+    );
+    setPlayerSubtitleOptions(
+      subs.map((t, idx) => ({
+        id: t.id ?? String(idx),
+        label: t.label || t.language || `Subtitle ${idx + 1}`,
+        lang: t.language,
+        index: idx,
+      })),
+    );
+
+    const audioSel = audioList.findIndex((t) => t.selected);
+    setActiveAudioTrack(audioSel >= 0 ? audioSel : 0);
+
+    const subSel = subs.findIndex((t) => t.mode === "showing");
+    setActiveSubtitleTrack(subSel);
+  }, []);
 
   const loadSerieData = useCallback(async () => {
     if (!seriesId || !streamId) return;
@@ -98,21 +162,11 @@ export const Player = () => {
       if (cancelled) return;
 
       if (result.ok) {
-        const { baseUrl, hlsPlaylist: playlist, tracks: trackList } = result.status;
+        const { baseUrl, hlsPlaylist: playlist } = result.status;
 
         if (playlist) {
           console.log(`${baseUrl}${playlist}`);
           setHlsPlaylistUrl(`${baseUrl}${playlist}`);
-        }
-
-        if (trackList && trackList.length > 0) {
-          setTracks(trackList);
-          const defaultAudio = trackList.find(
-            (t) => t.default && t.type === "audio",
-          );
-          if (defaultAudio) {
-            setActiveAudioTrack(defaultAudio.id);
-          }
         }
 
         setIsTranscoding(false);
@@ -132,6 +186,8 @@ export const Player = () => {
   }, [streamId]);
 
   const onCanPlay = () => {
+    syncTracksFromPlayer();
+
     window.store
       .get("playbackPositions")
       .then((raw) => {
@@ -244,11 +300,8 @@ export const Player = () => {
     }
   };
 
-  const handleAudioTrackChange = (track: HlsTrackInfo) => {
-    setActiveAudioTrack(track.id);
-
-    const audioIndex = audioTracks.findIndex((t) => t.id === track.id);
-    if (audioIndex < 0) return;
+  const handleAudioTrackChange = (option: PlayerAudioOption) => {
+    setActiveAudioTrack(option.index);
 
     try {
       const player = playerRef.current as unknown as {
@@ -256,49 +309,41 @@ export const Player = () => {
       };
 
       const list = player?.audioTracks;
-      if (list?.[audioIndex]) {
-        list[audioIndex].selected = true;
+      if (list?.[option.index]) {
+        list[option.index].selected = true;
       }
     } catch {
       // player API may not be available yet
     }
   };
 
-  const handleSubtitleTrackChange = (track: HlsTrackInfo | null) => {
-    setActiveSubtitleTrack(track ? track.id : -1);
+  const handleSubtitleTrackChange = (
+    option: PlayerSubtitleOption | null,
+  ) => {
+    setActiveSubtitleTrack(option ? option.index : -1);
 
     try {
       const player = playerRef.current as unknown as {
-        textTracks?: Iterable<{
-          kind?: string;
-          label?: string;
-          language?: string;
-          mode?: string;
-        }>;
+        textTracks?: { kind?: string; mode?: string }[];
       };
 
-      const allTextTracks = player?.textTracks ? Array.from(player.textTracks) : [];
-      const captionTracks = allTextTracks.filter(
-        (t) => t.kind === "subtitles" || t.kind === "captions",
-      );
+      const allTextTracks = player?.textTracks ?? [];
 
-      if (!track) {
-        for (const t of captionTracks) t.mode = "disabled";
+      if (!option) {
+        for (const t of allTextTracks) {
+          if (t.kind === "subtitles" || t.kind === "captions") {
+            t.mode = "disabled";
+          }
+        }
         return;
       }
 
-      const subtitleIndex = subtitleTracks.findIndex((t) => t.id === track.id);
-      if (subtitleIndex < 0) return;
-
-      const preferred =
-        captionTracks[subtitleIndex] ??
-        captionTracks.find(
-          (t) =>
-            (track.lang ? t.language === track.lang : true) && t.label === track.name,
-        );
-
-      if (preferred) {
-        preferred.mode = "showing";
+      const captionTracks = allTextTracks.filter(
+        (t) => t.kind === "subtitles" || t.kind === "captions",
+      );
+      const target = captionTracks[option.index];
+      if (target) {
+        target.mode = "showing";
       }
     } catch {
       // player API may not be available yet
@@ -344,6 +389,7 @@ export const Player = () => {
         title={currentEpisode?.title || "Video Player"}
         src={hlsPlaylistUrl || undefined}
         onCanPlay={onCanPlay}
+        onLoadedMetadata={syncTracksFromPlayer}
         onEnded={onEnd}
         onTimeUpdate={onTimeUpdate}
         onHlsLibLoadStart={onHlsLibLoadStart}
@@ -388,7 +434,8 @@ export const Player = () => {
           </div>
         </div>
 
-        {(audioTracks.length > 1 || subtitleTracks.length > 0) && (
+        {(playerAudioOptions.length > 1 ||
+          playerSubtitleOptions.length > 0) && (
           <div className="absolute top-20 right-8 z-20">
             <button
               type="button"
@@ -401,26 +448,26 @@ export const Player = () => {
 
             {showTrackSelector && (
               <div className="absolute right-0 mt-2 w-56 bg-gray-900/95 border border-gray-700 rounded-xl shadow-2xl p-3 backdrop-blur-sm">
-                {audioTracks.length > 1 && (
+                {playerAudioOptions.length > 1 && (
                   <div className="mb-3">
                     <p className="text-xs text-gray-400 uppercase tracking-wider font-bold mb-2">
                       Audio
                     </p>
-                    {audioTracks.map((track) => (
+                    {playerAudioOptions.map((option) => (
                       <button
-                        key={track.id}
+                        key={option.id}
                         type="button"
-                        onClick={() => handleAudioTrackChange(track)}
+                        onClick={() => handleAudioTrackChange(option)}
                         className={`w-full text-left px-3 py-1.5 rounded-lg text-sm transition-colors ${
-                          activeAudioTrack === track.id
+                          activeAudioTrack === option.index
                             ? "bg-purple-600 text-white"
                             : "text-gray-300 hover:bg-white/10"
                         }`}
                       >
-                        {track.name}
-                        {track.lang && (
+                        {option.label}
+                        {option.lang && (
                           <span className="text-xs ml-2 opacity-60">
-                            {track.lang}
+                            {option.lang}
                           </span>
                         )}
                       </button>
@@ -428,7 +475,7 @@ export const Player = () => {
                   </div>
                 )}
 
-                {subtitleTracks.length > 0 && (
+                {playerSubtitleOptions.length > 0 && (
                   <div>
                     <p className="text-xs text-gray-400 uppercase tracking-wider font-bold mb-2">
                       Subtitles
@@ -444,21 +491,21 @@ export const Player = () => {
                     >
                       Off
                     </button>
-                    {subtitleTracks.map((track) => (
+                    {playerSubtitleOptions.map((option) => (
                       <button
-                        key={track.id}
+                        key={option.id}
                         type="button"
-                        onClick={() => handleSubtitleTrackChange(track)}
+                        onClick={() => handleSubtitleTrackChange(option)}
                         className={`w-full text-left px-3 py-1.5 rounded-lg text-sm transition-colors ${
-                          activeSubtitleTrack === track.id
+                          activeSubtitleTrack === option.index
                             ? "bg-purple-600 text-white"
                             : "text-gray-300 hover:bg-white/10"
                         }`}
                       >
-                        {track.name}
-                        {track.lang && (
+                        {option.label}
+                        {option.lang && (
                           <span className="text-xs ml-2 opacity-60">
-                            {track.lang}
+                            {option.lang}
                           </span>
                         )}
                       </button>
