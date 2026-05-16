@@ -1,11 +1,18 @@
 import { Credentials } from "@/shared/types";
-import ffmpegPath from "ffmpeg-static";
 import ffprobe from "@ffprobe-installer/ffprobe";
-import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
-import { createReadStream, existsSync, mkdirSync, readdirSync, rmSync, statSync } from "node:fs";
+import ffmpegPath from "ffmpeg-static";
+import { type ChildProcessWithoutNullStreams, spawn } from "node:child_process";
+import {
+  createReadStream,
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  rmSync,
+  statSync,
+} from "node:fs";
 import http, { type IncomingMessage, type ServerResponse } from "node:http";
+import { constants, setPriority, tmpdir } from "node:os";
 import * as path from "node:path";
-import { tmpdir } from "node:os";
 import { URL } from "node:url";
 
 import { buildFfmpegArgs } from "./ffmpeg-builder";
@@ -76,7 +83,10 @@ export const hlsRequestHandler = (
   hlsDirectory = hlsDir,
 ): void => {
   try {
-    const url = new URL(request.url || "/", `http://${request.headers.host || HOST}`);
+    const url = new URL(
+      request.url || "/",
+      `http://${request.headers.host || HOST}`,
+    );
     let requestedPath = path.normalize(url.pathname).replace(/^\/+/, "");
     const hlsPrefixMatch = requestedPath.match(/^hls\/[^/]+\/(.+)/);
     if (hlsPrefixMatch) requestedPath = hlsPrefixMatch[1];
@@ -185,11 +195,11 @@ async function startHlsServer(
   const upstreamUrl = buildUrl(credentials, streamId);
   const ffprobePath = ffprobe.path;
 
-  console.log("[hls] resolving redirect for:", upstreamUrl);
+  console.log("[hls] resolving redirect");
   const resolvedUrl = await resolveRedirect(upstreamUrl);
-  console.log("[hls] resolved to:", resolvedUrl);
+  console.log("[hls] redirect resolved");
 
-  console.log("[hls] probing tracks from:", resolvedUrl);
+  console.log("[hls] probing tracks from url");
   const probeResult = await probeStream(ffprobePath, resolvedUrl);
   console.log(`[hls] found ${probeResult.streams.length} stream(s)`);
 
@@ -200,7 +210,12 @@ async function startHlsServer(
   ffmpeg = spawn(ffmpegBinary, args);
 
   ffmpeg.stderr.on("data", (data: Buffer) => {
-    process.stderr.write(`[ffmpeg] ${data.toString()}`);
+    try {
+      process.stderr.write(`[ffmpeg] ${data.toString()}`);
+      setPriority(ffmpeg?.pid, constants.priority.PRIORITY_BELOW_NORMAL);
+    } catch (e) {
+      console.log("Could not change priority", e);
+    }
   });
 
   ffmpeg.on("exit", (code, signal) => {
@@ -269,7 +284,7 @@ async function startHlsServer(
   }
 }
 
-  if (!process.env.VITEST) {
+if (!process.env.VITEST) {
   process.on("exit", () => {
     if (ffmpeg && !ffmpeg.killed) {
       try {
@@ -311,7 +326,13 @@ process.on("message", (msg: unknown) => {
   }
 
   if (message.type === "credentials") {
-    const { playlistId, streamId, server: srv, username, password } = message as Record<string, string>;
+    const {
+      playlistId,
+      streamId,
+      server: srv,
+      username,
+      password,
+    } = message as Record<string, string>;
     const credentials: Credentials = { server: srv, username, password };
 
     startHlsServer(credentials, playlistId, streamId).catch((err: unknown) => {

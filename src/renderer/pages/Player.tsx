@@ -152,14 +152,10 @@ export const Player = () => {
   }, [loadSerieData]);
 
   useEffect(() => {
-    let cancelled = false;
-
     async function start() {
       const result = await window.api.streamServer.start({
-        streamId: streamId!,
+        streamId: streamId,
       });
-
-      if (cancelled) return;
 
       if (result.ok) {
         const { baseUrl, hlsPlaylist: playlist } = result.status;
@@ -174,13 +170,13 @@ export const Player = () => {
         console.error(result.error?.message);
         setTranscodingError("Failed to start stream");
         setIsTranscoding(false);
+        void window.api.streamServer.stop({ reason: "start-error" });
       }
     }
 
     void start();
 
     return () => {
-      cancelled = true;
       void window.api.streamServer.stop({ reason: "player-unmount" });
     };
   }, [streamId]);
@@ -317,9 +313,7 @@ export const Player = () => {
     }
   };
 
-  const handleSubtitleTrackChange = (
-    option: PlayerSubtitleOption | null,
-  ) => {
+  const handleSubtitleTrackChange = (option: PlayerSubtitleOption | null) => {
     setActiveSubtitleTrack(option ? option.index : -1);
 
     try {
@@ -359,7 +353,8 @@ export const Player = () => {
         </p>
         {isTranscoding && (
           <p className="text-gray-600 text-xs">
-            Please wait while the stream is prepared (this may take 5-15 seconds)
+            Please wait while the stream is prepared (this may take 5-15
+            seconds)
           </p>
         )}
       </div>
@@ -396,6 +391,7 @@ export const Player = () => {
         // onHlsError={onHlsError}
         className="w-full h-full"
         autoPlay
+        streamType="on-demand"
       >
         <MediaProvider>
           {currentEpisode?.info.movieImage && showPoster && (

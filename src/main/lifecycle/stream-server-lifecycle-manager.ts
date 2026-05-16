@@ -95,11 +95,11 @@ export class StreamServerLifecycleManager implements StreamServerRepository {
         this.child = child;
 
         child.stdout?.on("data", (data: Buffer) => {
-          console.log(`[child] ${data.toString().trim()}`);
+          console.log(`[stream-parser] ${data.toString().trim()}`);
         });
 
         child.stderr?.on("data", (data: Buffer) => {
-          console.error(`[stream-server:err] ${data.toString().trim()}`);
+          console.error(`[stream-parser:err] ${data.toString().trim()}`);
         });
 
         const readyTimeout = setTimeout(() => {

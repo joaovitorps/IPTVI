@@ -68,7 +68,7 @@ export const streamServerLifecycleHandlers = (ipcMain: IpcMain) => {
   ipcMain.handle(
     IPC.STREAM_SERVER.STOP,
     async (_event, params?: StopStreamServerParams) => {
-      console.log("[stream-server] stop requested");
+      console.log(`[stream-server] stop requested - ${params?.reason}`);
 
       try {
         const { ok, status, error } = await stopServerUseCase.execute({

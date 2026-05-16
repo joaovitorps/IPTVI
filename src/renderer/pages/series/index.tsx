@@ -7,6 +7,9 @@ export const Index = () => {
 
   const pathnames = location.pathname.split("/").filter((pathname) => pathname);
 
+  window.location.href =
+    "http://localhost:5173/play/stream/66491/?seriesId=16&season=1";
+
   return (
     <>
       {pathnames.length > 0 && (

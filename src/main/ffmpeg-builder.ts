@@ -20,7 +20,9 @@ export class FfmpegBuildError extends Error {
 const MAX_HLS_SUBTITLE_RENDITIONS = 2;
 
 /** Subtitle codecs we attempt to package as WebVTT for HLS. Bitmap-based codecs are skipped. */
-export function isWebVttPackagableSubtitleCodec(codecName: string | undefined): boolean {
+export function isWebVttPackagableSubtitleCodec(
+  codecName: string | undefined,
+): boolean {
   if (!codecName) return false;
   const c = codecName.toLowerCase();
   const bitmap = new Set([
@@ -46,7 +48,12 @@ export function isWebVttPackagableSubtitleCodec(codecName: string | undefined): 
 }
 
 function sanitizeVarStreamToken(value: string): string {
-  return value.replace(/,/g, "_").replace(/\s+/g, " ").trim().slice(0, 64) || "und";
+  return (
+    value
+      .replace(/[,:\s]/g, "_")
+      .trim()
+      .slice(0, 64) || "und"
+  );
 }
 
 function buildVarStreamMapParts(
@@ -107,14 +114,20 @@ export function buildFfmpegArgs(
     );
   }
 
-  args.push("-i", inputUrl);
+  args.push("-i", inputUrl); // video url input
 
-  args.push(
-    "-map", "0:v:0",
-    "-c:v", "libx264",
-    "-b:v:0", "3000k",
-    "-s:v:0", "1280x720",
-  );
+  // args.push("-map", "0:v:0"); //
+  // args.push("-c:v", "libx264"); //
+  args.push("-c:v", "libvpx-vp9"); // codec VP9 (to reduce the size)
+  // args.push("-row-mt 1"); // enable multi-thread (https://trac.ffmpeg.org/wiki/Encode/VP9#rowmt)
+
+  // set a min and max bitrate (https://techblog.skeepers.io/an-introduction-to-the-difficult-world-of-video-processing-c31642b9f806)
+  // thanks google (https://developers.google.com/media/vp9/settings/vod#bitrate)
+  args.push("-minrate:v 900k", "-b:v 2000k", "-maxrate:v 2610k");
+  // args.push("-b:v:0", "3000k"); //
+  args.push("-s:v:0", "1280x720"); // set quality
+  args.push("-threads 2", "-preset veryfast");
+
   tracks.push({
     id: nextId++,
     type: "video",
@@ -122,18 +135,22 @@ export function buildFfmpegArgs(
     bitrate: 3000,
   });
 
-  args.push(
-    "-map", "0:v:0",
-    "-c:v", "libx264",
-    "-b:v:1", "1000k",
-    "-s:v:1", "640x360",
-  );
-  tracks.push({
-    id: nextId++,
-    type: "video",
-    name: "360p",
-    bitrate: 1000,
-  });
+  // args.push(
+  //   "-map",
+  //   "0:v:0",
+  //   "-c:v",
+  //   "libx264",
+  //   "-b:v:1",
+  //   "1000k",
+  //   "-s:v:1",
+  //   "640x360",
+  // );
+  // tracks.push({
+  //   id: nextId++,
+  //   type: "video",
+  //   name: "360p",
+  //   bitrate: 1000,
+  // });
 
   const audioMeta: { label: string; lang: string; default: boolean }[] = [];
 
@@ -142,11 +159,7 @@ export function buildFfmpegArgs(
     const lang = stream.tags?.language || "und";
     const label = stream.tags?.title || (i === 0 ? "Default" : `Audio ${i}`);
 
-    args.push(
-      "-map", `0:a:${i}`,
-      "-c:a", "aac",
-      "-b:a", "128k",
-    );
+    // args.push("-map", `0:a:${i}`, "-c:a", "aac", "-b:a", "128k");
 
     audioMeta.push({ label, lang, default: i === 0 });
 
@@ -166,7 +179,10 @@ export function buildFfmpegArgs(
     }
   }
 
-  const mappedSubtitleIndices = packagableSubtitleIndices.slice(0, MAX_HLS_SUBTITLE_RENDITIONS);
+  const mappedSubtitleIndices = packagableSubtitleIndices.slice(
+    0,
+    MAX_HLS_SUBTITLE_RENDITIONS,
+  );
   const subtitleMeta: { label: string; lang: string }[] = [];
 
   for (const i of mappedSubtitleIndices) {
@@ -174,10 +190,7 @@ export function buildFfmpegArgs(
     const lang = stream.tags?.language || "und";
     const label = stream.tags?.title || `Subtitle ${i}`;
 
-    args.push(
-      "-map", `0:s:${i}`,
-      "-c:s", "webvtt",
-    );
+    // args.push("-map", `0:s:${i}`, "-c:s", "webvtt");
 
     subtitleMeta.push({ label, lang });
 
@@ -192,13 +205,20 @@ export function buildFfmpegArgs(
   const varMapParts = buildVarStreamMapParts(audioMeta, subtitleMeta);
 
   args.push(
-    "-f", "hls",
-    "-hls_time", "6",
-    "-hls_list_size", "0",
-    "-hls_segment_type", "fmp4",
-    "-hls_flags", "independent_segments",
-    "-var_stream_map", varMapParts.join(" "),
-    "-master_pl_name", "master.m3u8",
+    "-f",
+    "hls",
+    "-hls_time",
+    "6",
+    "-hls_list_size",
+    "0",
+    "-hls_segment_type",
+    "fmp4",
+    "-hls_flags",
+    "independent_segments",
+    "-var_stream_map",
+    varMapParts.join(" "),
+    "-master_pl_name",
+    "master.m3u8",
     `${outputDir}/stream_%v.m3u8`,
   );
 

@@ -44,7 +44,7 @@ describe("FFmpegArgsBuilder", () => {
     const varMapVal = result.args[varMapIdx + 1];
     expect(varMapVal).toContain("a:0,agroup:aud,name:English,language:eng,default:yes");
     expect(varMapVal).toContain("a:1,agroup:aud,name:Portuguese,language:por,default:no");
-    expect(varMapVal).toContain("s:0,sgroup:subs,name:Subtitle 0,language:eng");
+    expect(varMapVal).toContain("s:0,sgroup:subs,name:Subtitle_0,language:eng");
     expect(varMapVal).toContain("v:0,agroup:aud,s:0,sgroup:subs");
     expect(varMapVal).toContain("v:1,agroup:aud");
 
@@ -173,8 +173,8 @@ describe("FFmpegArgsBuilder", () => {
     expect(result.args).toContain("-var_stream_map");
     const varMapIdx = result.args.indexOf("-var_stream_map");
     const varMapVal = result.args[varMapIdx + 1];
-    expect(varMapVal).toContain("s:0,sgroup:subs,name:Subtitle 0,language:eng");
-    expect(varMapVal).toContain("s:1,sgroup:subs,name:Subtitle 1,language:por");
+    expect(varMapVal).toContain("s:0,sgroup:subs,name:Subtitle_0,language:eng");
+    expect(varMapVal).toContain("s:1,sgroup:subs,name:Subtitle_1,language:por");
     expect(varMapVal).toContain("v:0,agroup:aud,s:0,sgroup:subs");
     expect(varMapVal).toContain("v:1,agroup:aud,s:1,sgroup:subs");
   });
@@ -249,5 +249,44 @@ describe("FFmpegArgsBuilder", () => {
 
     expect(result1.args).toEqual(result2.args);
     expect(result1.tracks).toEqual(result2.tracks);
+  });
+
+  it("should sanitize spaces in track titles (no bare tokens in var_stream_map)", () => {
+    const probe: FFprobeResult = {
+      streams: [
+        { index: 0, codec_type: "video", codec_name: "h264" },
+        { index: 1, codec_type: "audio", codec_name: "aac", tags: { language: "eng", title: "English Portuguese" } },
+      ],
+    };
+
+    const result = buildFfmpegArgs(probe, "http://example.com/video.mkv", "/tmp/hls/test");
+
+    const idx = result.args.indexOf("-var_stream_map");
+    const varMap = result.args[idx + 1];
+
+    // Must NOT contain bare tokens "Portuguese" (without key: prefix)
+    const groups = varMap.split(" ");
+    for (const group of groups) {
+      const firstToken = group.split(",")[0];
+      expect(firstToken).toMatch(/^[vas]:\d+$/);
+    }
+
+    expect(varMap).toContain("name:English_Portuguese");
+    expect(result.tracks.find((t) => t.type === "audio")!.name).toBe("English Portuguese");
+  });
+
+  it("should sanitize colons in track titles", () => {
+    const probe: FFprobeResult = {
+      streams: [
+        { index: 0, codec_type: "video", codec_name: "h264" },
+        { index: 1, codec_type: "audio", codec_name: "aac", tags: { language: "eng", title: "Title: Subtitle" } },
+      ],
+    };
+
+    const result = buildFfmpegArgs(probe, "http://example.com/video.mkv", "/tmp/hls/test");
+
+    const idx = result.args.indexOf("-var_stream_map");
+    const varMap = result.args[idx + 1];
+    expect(varMap).toContain("name:Title__Subtitle");
   });
 });

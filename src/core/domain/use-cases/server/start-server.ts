@@ -33,9 +33,16 @@ export class StartServerUseCase {
     port,
     streamId,
   }: StartServerUseCaseParams): Promise<StartServerUseCaseReturn> {
-    const activePlaylists = await this.playlistRepository.fetchActives();
+    const serverStatus = this.streamServerRepository.status();
 
-    console.log(activePlaylists);
+    if (serverStatus.state in ["starting", "running", "stopping"]) {
+      return {
+        ok: false,
+        status: this.streamServerRepository.status(),
+      };
+    }
+
+    const activePlaylists = await this.playlistRepository.fetchActives();
 
     if (activePlaylists.length === 0) {
       return {
@@ -50,7 +57,7 @@ export class StartServerUseCase {
 
     const [playlist] = activePlaylists;
 
-    console.info("[start-server] Playlist found: ", playlist.id);
+    console.info("[start-server] Playlist found:", playlist.id);
 
     const params: StartStreamServerRepositoryParams = {
       playlistId: playlist.id,
