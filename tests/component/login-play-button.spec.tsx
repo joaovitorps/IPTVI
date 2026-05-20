@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment */
 /**
  * @vitest-environment happy-dom
  */
@@ -26,7 +27,6 @@ describe("Login Page - Play Button", () => {
   const mockPlaylist = makePlaylistDTO();
 
   it("should show error banner when activating playlist with invalid credentials", async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (window as any).api = {
       playlist: {
         activate: vi.fn().mockRejectedValue(new Error("Invalid Credentials.")),
@@ -67,7 +67,6 @@ describe("Login Page - Play Button", () => {
   });
 
   it("should redirect when activating playlist with valid credentials", async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (window as any).api = {
       playlist: {
         activate: vi.fn().mockResolvedValue(undefined),
@@ -112,7 +111,6 @@ describe("Login Page - Play Button", () => {
       expect(redirectedTo).toBe("/");
     });
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     expect((window as any).api.playlist.activate).toHaveBeenCalledWith(
       "playlist-1",
     );
@@ -130,7 +128,6 @@ describe("Login Page - Play Button", () => {
       isActive: false,
     });
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (window as any).api = {
       playlist: {
         activate: vi.fn().mockResolvedValue(undefined),
@@ -175,7 +172,6 @@ describe("Login Page - Play Button", () => {
     fireEvent.click(screen.getByText("Switch Playlist"));
 
     await waitFor(() => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       expect((window as any).api.playlist.activate).toHaveBeenCalledWith(
         "new-1",
       );
