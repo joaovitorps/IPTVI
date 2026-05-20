@@ -13,6 +13,7 @@ import {
 import { useEffect, useState } from "react";
 import { useFormStatus } from "react-dom";
 
+import { ConfirmDialog } from "../components/ConfirmDialog";
 import { useAuthState } from "../stores/authStore";
 
 export const Login = () => {
@@ -29,6 +30,13 @@ export const Login = () => {
     null,
   );
   const [error, setError] = useState<string | null>(null);
+  const [confirmDialog, setConfirmDialog] = useState<{
+    isOpen: boolean;
+    playlistId: string;
+  }>({
+    isOpen: false,
+    playlistId: "",
+  });
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -136,15 +144,48 @@ export const Login = () => {
     }
   };
 
+  const hasOtherActivePlaylists = (excludePlaylistId: string): boolean => {
+    return playlists.some(
+      (playlist) => playlist.isActive && playlist.id !== excludePlaylistId,
+    );
+  };
+
   const handlePlayPlaylist = async (
     e: React.MouseEvent,
     playlistId: string,
   ) => {
     e.stopPropagation();
 
-    await window.api.playlist.activate(playlistId);
+    if (hasOtherActivePlaylists(playlistId)) {
+      setConfirmDialog({
+        isOpen: true,
+        playlistId,
+      });
+      return;
+    }
 
-    redirect();
+    await activatePlaylist(playlistId);
+  };
+
+  const activatePlaylist = async (playlistId: string) => {
+    try {
+      await window.api.playlist.activate(playlistId);
+      redirect();
+    } catch (error) {
+      console.error("Failed to activate playlist:", error);
+      setError(
+        error instanceof Error ? error.message : "Failed to activate playlist",
+      );
+    }
+  };
+
+  const handleConfirmActivate = async () => {
+    setConfirmDialog({ isOpen: false, playlistId: "" });
+    await activatePlaylist(confirmDialog.playlistId);
+  };
+
+  const handleCancelActivate = () => {
+    setConfirmDialog({ isOpen: false, playlistId: "" });
   };
 
   return (
@@ -316,6 +357,16 @@ export const Login = () => {
           </form>
         </div>
       </div>
+
+      <ConfirmDialog
+        isOpen={confirmDialog.isOpen}
+        title="Switch Active Playlist"
+        message="Another playlist is currently active. Do you want to deactivate it and activate this one instead?"
+        confirmLabel="Switch Playlist"
+        cancelLabel="Cancel"
+        onConfirm={() => void handleConfirmActivate()}
+        onCancel={handleCancelActivate}
+      />
     </div>
   );
 };
