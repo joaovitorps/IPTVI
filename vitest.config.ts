@@ -7,5 +7,6 @@ export default defineConfig({
     exclude: [...configDefaults.exclude, "**/.worktrees/**"],
     globals: true,
     environment: "node",
+    setupFiles: ["./tests/setup.ts"],
   },
 });
