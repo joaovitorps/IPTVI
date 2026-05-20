@@ -19,6 +19,18 @@ export class FfmpegBuildError extends Error {
 
 const MAX_HLS_SUBTITLE_RENDITIONS = 2;
 
+function isBrowserCompatibleVideoCodec(codecName: string | undefined): boolean {
+  if (!codecName) return false;
+  const compatible = new Set(["h264", "h265", "hevc", "vp9", "av1"]);
+  return compatible.has(codecName.toLowerCase());
+}
+
+function isBrowserCompatibleAudioCodec(codecName: string | undefined): boolean {
+  if (!codecName) return false;
+  const compatible = new Set(["aac", "mp3", "opus", "vorbis"]);
+  return compatible.has(codecName.toLowerCase());
+}
+
 /** Subtitle codecs we attempt to package as WebVTT for HLS. Bitmap-based codecs are skipped. */
 export function isWebVttPackagableSubtitleCodec(
   codecName: string | undefined,
@@ -80,16 +92,15 @@ function buildVarStreamMapParts(
     parts.push(`s:${j},sgroup:subs,name:${name},language:${language}`);
   }
 
-  const vs0 = ["v:0", "v:1"];
+  const vs = "v:0";
+  const vsParts: string[] = [];
   if (hasAudio) {
-    vs0[0] += ",agroup:aud";
-    vs0[1] += ",agroup:aud";
+    vsParts.push("agroup:aud");
   }
   for (let j = 0; j < subtitleCount; j++) {
-    vs0[j % 2] += `,s:${j},sgroup:subs`;
+    vsParts.push(`s:${j},sgroup:subs`);
   }
-
-  parts.push(vs0[0], vs0[1]);
+  parts.push(vs + (vsParts.length > 0 ? "," + vsParts.join(",") : ""));
   return parts;
 }
 
@@ -114,43 +125,25 @@ export function buildFfmpegArgs(
     );
   }
 
-  args.push("-i", inputUrl); // video url input
+  args.push("-i", inputUrl);
 
-  // args.push("-map", "0:v:0"); //
-  // args.push("-c:v", "libx264"); //
-  args.push("-c:v", "libvpx-vp9"); // codec VP9 (to reduce the size)
-  // args.push("-row-mt 1"); // enable multi-thread (https://trac.ffmpeg.org/wiki/Encode/VP9#rowmt)
+  const vidStream = videoStreams[0];
+  const videoCompatible = isBrowserCompatibleVideoCodec(vidStream.codec_name);
 
-  // set a min and max bitrate (https://techblog.skeepers.io/an-introduction-to-the-difficult-world-of-video-processing-c31642b9f806)
-  // thanks google (https://developers.google.com/media/vp9/settings/vod#bitrate)
-  args.push("-minrate:v 900k", "-b:v 2000k", "-maxrate:v 2610k");
-  // args.push("-b:v:0", "3000k"); //
-  args.push("-s:v:0", "1280x720"); // set quality
-  args.push("-threads 2", "-preset veryfast");
+  args.push("-map", "0:v:0");
+  if (videoCompatible) {
+    args.push("-c:v", "copy");
+  } else {
+    args.push("-c:v", "libx264", "-b:v", "3000k", "-s:v:0", "1280x720", "-preset", "veryfast");
+  }
 
+  const vidHeight = vidStream.height || 720;
   tracks.push({
     id: nextId++,
     type: "video",
-    name: "720p",
-    bitrate: 3000,
+    name: `${vidHeight}p`,
+    bitrate: videoCompatible ? 0 : 3000,
   });
-
-  // args.push(
-  //   "-map",
-  //   "0:v:0",
-  //   "-c:v",
-  //   "libx264",
-  //   "-b:v:1",
-  //   "1000k",
-  //   "-s:v:1",
-  //   "640x360",
-  // );
-  // tracks.push({
-  //   id: nextId++,
-  //   type: "video",
-  //   name: "360p",
-  //   bitrate: 1000,
-  // });
 
   const audioMeta: { label: string; lang: string; default: boolean }[] = [];
 
@@ -159,7 +152,12 @@ export function buildFfmpegArgs(
     const lang = stream.tags?.language || "und";
     const label = stream.tags?.title || (i === 0 ? "Default" : `Audio ${i}`);
 
-    // args.push("-map", `0:a:${i}`, "-c:a", "aac", "-b:a", "128k");
+    args.push("-map", `0:a:${i}`);
+    if (isBrowserCompatibleAudioCodec(stream.codec_name)) {
+      args.push(`-c:a:${i}`, "copy");
+    } else {
+      args.push(`-c:a:${i}`, "aac", `-b:a:${i}`, "128k");
+    }
 
     audioMeta.push({ label, lang, default: i === 0 });
 
@@ -190,7 +188,7 @@ export function buildFfmpegArgs(
     const lang = stream.tags?.language || "und";
     const label = stream.tags?.title || `Subtitle ${i}`;
 
-    // args.push("-map", `0:s:${i}`, "-c:s", "webvtt");
+    args.push("-map", `0:s:${i}`, "-c:s", "webvtt");
 
     subtitleMeta.push({ label, lang });
 
