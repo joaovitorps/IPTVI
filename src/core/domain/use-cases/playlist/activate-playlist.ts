@@ -17,14 +17,14 @@ export class ActivatePlaylistUseCase {
 
     const activePlaylists = await this.playlistRepository.fetchActives();
 
-    if (activePlaylists.length > 0) {
-      if (!activePlaylists.find((playlist) => playlist.id === playlistId)) {
-        throw new Error("Other playlist is already active.");
+    for (const activePlaylist of activePlaylists) {
+      if (activePlaylist.id !== playlistId) {
+        activePlaylist.isActive = false;
+        await this.playlistRepository.save(activePlaylist);
       }
     }
 
     playlist.isActive = true;
-
     await this.playlistRepository.save(playlist);
   }
 }
