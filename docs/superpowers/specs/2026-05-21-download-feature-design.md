@@ -149,11 +149,11 @@ Sanitize serie/file names: replace characters invalid on Windows/macOS/Linux (`/
 
 ### HTTP Download Implementation
 
-- Use Node.js `https` module or `axios` (project dependency) to GET the stream URL
+- Use `axios` (already a project dependency) to GET the stream URL — always use GET requests, never HEAD (IPTV servers may not support HEAD and will return incorrect headers)
 - Pipe response to `fs.WriteStream` at the calculated file path
 - Create directories with `fs.mkdir(downloadDir, { recursive: true })` before each download
 - Track progress: on `data` event, accumulate `bytesDownloaded` and emit progress event
-- Read `Content-Length` header for `totalBytes` (default to `-1` if absent)
+- Read `Content-Length` header from the GET response for `totalBytes` (default to `-1` if absent)
 - Construct stream URL from IPTV API: uses the episode's `directSource` field if available, otherwise falls back to the pattern `http://{server}/series/{username}/{password}/{episodeId}.{containerExtension}` (matching the existing `buildUrl` in `stream-parser.ts`)
 
 ### Startup Behavior (B2 Persistence)
