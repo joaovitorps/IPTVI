@@ -3,11 +3,11 @@ import { PlaylistRepository } from "../../repositories/playlist-repository";
 import { EntityNotFoundError } from "../error/entity-not-found-error";
 import { InvalidCredentialsError } from "../error/invalid-credentials-error";
 
-interface ActivatePlaylistUseCaseParams {
+export interface ActivatePlaylistUseCaseParams {
   playlistId: string;
 }
 
-interface ActivatePlaylistUseCaseReturn {
+export interface ActivatePlaylistUseCaseReturn {
   activated: boolean;
 }
 

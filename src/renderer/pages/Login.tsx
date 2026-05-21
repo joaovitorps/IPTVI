@@ -1,4 +1,4 @@
-import { Playlist } from "@/core/domain/entities/playlist";
+import { PlaylistDTO } from "@/shared/types";
 import {
   Edit2,
   LoaderCircleIcon,
@@ -43,7 +43,7 @@ export const Login = () => {
     setFormValues((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSelectPlaylist = (playlist: Playlist) => {
+  const handleSelectPlaylist = (playlist: PlaylistDTO) => {
     setFormValues({
       server: playlist.server,
       username: playlist.username,
@@ -84,7 +84,7 @@ export const Login = () => {
 
     if (credentialsValidation.isValid) {
       if (editingPlaylistId) {
-        window.api.playlist.update({
+        await window.api.playlist.update({
           playlistId: editingPlaylistId,
           data: { name, server, username, password },
         });
@@ -105,7 +105,11 @@ export const Login = () => {
           await fetchPlaylists();
           window.location.href = "/";
         } catch (error) {
-          setError(error.message);
+          console.error(error);
+
+          if (error instanceof Error) {
+            setError(error.message);
+          }
         }
       }
     } else {

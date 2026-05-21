@@ -1,7 +1,6 @@
-import { UserDataResponse } from "@/main/api/requests";
 import { axiosInstance } from "@/shared/axios";
 import { AccountInfo } from "@/shared/schemas";
-import { Credentials } from "@/shared/types";
+import { Credentials, UserDataResponse } from "@/shared/types";
 import { default as axios } from "axios";
 
 import { CredentialRepository } from "../credential-repository";

@@ -7,5 +7,6 @@ export const activatePlaylist = async (playlistId: string) => {
     new StorePlaylistRepository(),
     new APICredentialRepository(),
   );
+
   return useCase.execute({ playlistId });
 };
