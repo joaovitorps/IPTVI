@@ -351,3 +351,88 @@ src/renderer/App.tsx                # Initialize download store + subscribe to e
 src/renderer/pages/series/EpisodeInfo.tsx  # Add CircularProgress to episode rows
 src/renderer/pages/series/SerieInfo.tsx    # Add CircularProgress to season buttons
 ```
+
+## Atomic Commits
+
+Each logical unit of work should be committed separately using conventional commits. The expected commit sequence:
+
+1. `feat(download): add DownloadStream type, DownloadStatus, DownloadDTO, and IPC types` — shared types and constants
+2. `feat(download): add Download entity` — domain entity with `toJSON()`, tests
+3. `feat(download): add DOWNLOAD IPC channel constants` — `src/shared/constants/ipc.ts` update
+4. `feat(download): add StoreSchema fields for downloads and downloadDir` — `src/shared/store.ts` update
+5. `feat(download): add DownloadManager` — core queue logic, HTTP download, persistence, tests
+6. `feat(download): add download IPC handlers` — `src/main/download-ipc.ts` + registration in `main.ts`
+7. `feat(download): add download preload API` — `src/preload/preload.ts` + `Api` interface update
+8. `feat(download): add download Zustand store` — `src/renderer/stores/downloadStore.ts` + initialization in `App.tsx`
+9. `feat(download): add CircularProgress component` — SVG component with status states
+10. `feat(download): integrate CircularProgress into EpisodeInfo and SerieInfo` — UI integration
+
+Each commit should be self-contained: types compile, tests pass, no broken intermediate states.
+
+## Tests
+
+### Unit Tests
+
+**Download Entity** (`src/core/domain/entities/download.ts`):
+- Creation with all required props
+- `toJSON()` produces correct `DownloadDTO` shape
+- Status transitions are valid (`queued` → `downloading` → `completed` / `error`)
+- Cancellation sets status correctly
+- `DownloadStream` discriminated union: episode variant and movie variant both type-check
+
+**DownloadManager** (`src/main/download-manager.ts`):
+- `enqueue()` adds item to queue, returns ID
+- `enqueue()` starts processing if queue was empty
+- Sequential processing: second item stays `queued` until first completes
+- `cancel()` removes queued item
+- `cancel()` aborts in-progress download and deletes partial file
+- `cancelAll()` clears entire queue
+- `getQueue()` returns current state snapshot
+- B2 persistence on startup: loads from store, resets `downloading` to `queued`, deletes partials
+- Completed items are not persisted to store
+- Error on download: marks item as `error`, advances to next
+- Auto-advance: on completion, starts next queued item
+- File path construction: sanitizes serie name, formats `S01E01 - Title.mkv`
+- Directory creation: `fs.mkdir` with `{ recursive: true }`
+
+**File Sanitization**:
+- Replaces `\/:*?"<>|` with underscores
+- Handles empty names with fallback
+- Handles names with multiple consecutive invalid characters
+
+### Integration Tests
+
+**IPC Flow** (`src/main/download-ipc.ts`):
+- `download:start` with episode ID enqueues and returns download ID
+- `download:start-season` fetches serie, finds season, enqueues all episodes in order
+- `download:cancel` cancels by ID
+- `download:cancel-all` clears queue
+- `download:get-queue` returns current queue state
+- Push events are sent via `webContents.send()` on progress, completion, error, queued
+
+**Preload Bridge** (`src/preload/preload.ts`):
+- All `download.*` methods correctly bridge to IPC
+- `on*` methods correctly subscribe and return unsubscribe functions
+- Unsubscribe functions remove listeners properly
+
+**Store Persistence** (`src/shared/store.ts`):
+- `downloads` key stores and retrieves `DownloadDTO[]`
+- `downloadDir` key stores and retrieves string
+- Default values are correct
+
+### Component Tests
+
+**CircularProgress** (`src/renderer/components/CircularProgress.tsx`):
+- Renders correct icon/content for each status (idle, queued, downloading, completed, error, cancelled)
+- Progress arc reflects percentage correctly (`stroke-dashoffset` calculation)
+- Click handlers fire correctly for each status
+
+**Download Store** (`src/renderer/stores/downloadStore.ts`):
+- `syncQueue()` populates items from array
+- `updateProgress()` updates existing item
+- `markCompleted()` updates item and removes from active tracking
+- `markError()` updates item status
+- `addQueued()` adds new item
+- `removeItem()` removes by ID
+- `getByEpisodeId()` finds matching episode download
+- `getSeasonProgress()` calculates aggregate progress correctly
