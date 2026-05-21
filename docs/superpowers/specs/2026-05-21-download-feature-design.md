@@ -89,13 +89,13 @@ Defaults: `downloads: []`, `downloadDir: ""` (resolved at runtime via `path.join
 feat(download): add DownloadStream type, DownloadStatus, DownloadDTO, and IPC types
 ```
 
-Files: `src/shared/types/ipc.ts`, `src/shared/types/dto.ts`, `src/shared/store.ts`
+Files: `src/shared/types/ipc.ts`, `src/shared/types/dto.ts`, `src/shared/store.ts`, `tests/shared/store.test.ts`
 
 ```
 feat(download): add Download entity
 ```
 
-Files: `src/core/domain/entities/download.ts`, tests
+Files: `src/core/domain/entities/download.ts`, `tests/core/domain/entities/download.test.ts`
 
 ### Tests — Domain Model
 
@@ -192,7 +192,7 @@ Sanitize serie/file names: replace characters invalid on Windows/macOS/Linux (`/
 feat(download): add DownloadManager
 ```
 
-Files: `src/main/download-manager.ts`, tests
+Files: `src/main/download-manager.ts`, `tests/main/download-manager.test.ts`
 
 ### Tests — DownloadManager
 
@@ -316,13 +316,13 @@ Files: `src/shared/constants/ipc.ts`
 feat(download): add download IPC handlers
 ```
 
-Files: `src/main/download-ipc.ts`, `src/main/main.ts`
+Files: `src/main/download-ipc.ts`, `src/main/main.ts`, `tests/main/download-ipc.test.ts`
 
 ```
 feat(download): add download preload API
 ```
 
-Files: `src/preload/preload.ts`, `src/shared/types.ts`
+Files: `src/preload/preload.ts`, `src/shared/types.ts`, `tests/preload/download-bridge.test.ts`
 
 ### Tests — IPC
 
@@ -371,7 +371,7 @@ interface DownloadState {
 feat(download): add download Zustand store
 ```
 
-Files: `src/renderer/stores/downloadStore.ts`, `src/renderer/App.tsx`
+Files: `src/renderer/stores/downloadStore.ts`, `src/renderer/App.tsx`, `tests/renderer/stores/downloadStore.test.ts`
 
 ### Tests — Download Store
 
@@ -433,7 +433,7 @@ Add `CircularProgress` to each season button, right-aligned:
 feat(download): add CircularProgress component
 ```
 
-Files: `src/renderer/components/CircularProgress.tsx`
+Files: `src/renderer/components/CircularProgress.tsx`, `tests/renderer/components/CircularProgress.test.tsx`
 
 ```
 feat(download): integrate CircularProgress into EpisodeInfo and SerieInfo
